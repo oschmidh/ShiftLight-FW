@@ -1,23 +1,97 @@
 #ifndef I2C_HPP
 #define I2C_HPP
 
+#include <ti/driverlib/dl_i2c.h>
+#include <ti/driverlib/driverlib.h>
+
 #include <span>
 #include <cstdint>
 
 class I2c {    // TODO call i2cController?
   public:
-    void init() noexcept { }
+    I2c() noexcept { }
 
-    void write(std::uint8_t addr, std::span<const std::uint8_t> writebuf) const noexcept
+    void init() noexcept
     {
-        // TODO implement
+        DL_I2C_reset(I2C0);
+        DL_I2C_enablePower(I2C0);
+
+        constexpr DL_I2C_ClockConfig clkCfg{.clockSel = DL_I2C_CLOCK_BUSCLK, .divideRatio = DL_I2C_CLOCK_DIVIDE_1};
+        DL_I2C_setClockConfig(I2C0, &clkCfg);
+        DL_I2C_disableAnalogGlitchFilter(I2C0);    // TODO needed?
+
+        /* Configure Controller Mode */
+        DL_I2C_resetControllerTransfer(I2C0);
+
+        // TODO make configurable at compile time:
+        static constexpr unsigned int i2cClk = 24'000'000;
+        static constexpr unsigned int i2cFreq = 100'000;
+        static_assert(i2cClk >= 20 * i2cFreq, "requirement in refMan");    // TODO edit message
+        static constexpr unsigned int sclLp = 6;
+        static constexpr unsigned int sclHp = 4;
+        static constexpr unsigned int tpr = (i2cClk / (i2cFreq * (sclLp + sclHp))) - 1;
+        static_assert(tpr <= 0x7F);
+
+        DL_I2C_setTimerPeriod(I2C0, tpr);
+        DL_I2C_setControllerTXFIFOThreshold(I2C0, DL_I2C_TX_FIFO_LEVEL_BYTES_1);
+        DL_I2C_setControllerRXFIFOThreshold(I2C0, DL_I2C_RX_FIFO_LEVEL_BYTES_1);
+        DL_I2C_enableControllerClockStretching(I2C0);
+
+        DL_I2C_enableController(I2C0);
+    }
+
+    // TODO should be std::byte instead of uint8?
+    void write(std::uint8_t addr, std::span<const std::uint8_t> data) const noexcept
+    {
+        const auto size = data.size();
+        if (size > 0xfff) {    // TODO unlikely?
+            return;            // TODO return error
+        }
+
+        const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
+        data = data.subspan(amount);    // TODO is it allowed if offset == size?
+
+        while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
+            ;
+
+        DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_TX, size);
+
+        while (!data.empty()) {
+            const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
+            data = data.subspan(amount);    // TODO is it allowed if offset == size?
+        }
+
+        /* Poll until the Controller writes all bytes */
+        while (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_BUSY_BUS)
+            ;
+
+        /* Trap if there was an error */
+        if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
+            return;    // TODO return error code?
+        }
+
+        while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
+            ;
     }
 
     // Write transaction, followed by a read transaction with restart in between
     void transfer(std::uint8_t addr, std::span<const std::uint8_t> writebuf,
                   std::span<std::uint8_t> readbuf) const noexcept
-    {
-        // TODO implement
+    {    // TODO should be std::byte instead of uint8?
+
+        static constexpr unsigned int txFifoSize = 8;    // TODO hardcoded here?
+        if (writebuf.size() > txFifoSize) {
+            return;    // TODO not implemented
+        }
+
+        DL_I2C_enableControllerReadOnTXEmpty(I2C0);
+        DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_RX, readbuf.size());
+
+        for (auto& byte : readbuf) {
+            while (DL_I2C_isControllerRXFIFOEmpty(I2C0))
+                ;
+            byte = DL_I2C_receiveControllerData(I2C0);
+        }
     }
 
   private:
