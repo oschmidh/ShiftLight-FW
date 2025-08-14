@@ -4,7 +4,6 @@
 {
     SYSCFG_DL_init();
 
-    while (1) 
-    {
+    while (1) {
     }
 }
