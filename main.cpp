@@ -1,3 +1,6 @@
+#include "I2c.hpp"
+#include "Tlc59208f.hpp"
+
 #include "ti_msp_dl_config.h"
 
 #include <array>
@@ -43,7 +46,10 @@ class LedController {
 
     constexpr void init() const noexcept
     {
-        // TODO configure channels
+        [this]<unsigned int... IDX_Vs>(std::index_sequence<IDX_Vs...>) noexcept {
+            _driver.configureChannels(
+                (Tlc59208f<I2c>::ChannelConfig{IDX_Vs, Tlc59208f<I2c>::DriverState::GroupCtrl}, ...));
+        }(std::make_index_sequence<numLeds>());
     }
 
     constexpr void setLed(unsigned int idx, std::uint8_t brightness) noexcept
@@ -66,8 +72,7 @@ class LedController {
                 continue;
             }
 
-            // TODO set driver channel
-
+            _driver.setBrightness(i, _ledBuf[i].value());
             _ledBuf[i].reset();
         }
     }
@@ -81,8 +86,11 @@ class LedController {
 {
     SYSCFG_DL_init();
 
-    struct LedDriver {
-    } driver;    // TODO implement LED driver
+    I2c i2c0;
+    i2c0.init();
+
+    static constexpr std::uint8_t ledDriverI2cAddr = 0xff;    // TODO define somewhere else
+    Tlc59208f driver(i2c0, ledDriverI2cAddr);
 
     LedController leds(driver);
     leds.init();
