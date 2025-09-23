@@ -62,6 +62,19 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
 
 SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 {
+    DL_SYSCTL_disableNRSTPin();
+
+    DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM1, IOMUX_PINCM1_PF_I2C0_SDA, DL_GPIO_INVERSION_DISABLE,
+                                                DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+                                                DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM2, IOMUX_PINCM2_PF_I2C0_SCL, DL_GPIO_INVERSION_DISABLE,
+                                                DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+                                                DL_GPIO_WAKEUP_DISABLE);
+
+    DL_GPIO_enableHiZ(IOMUX_PINCM1);
+    DL_GPIO_enableHiZ(IOMUX_PINCM2);
+
+    DL_GPIO_initPeripheralInputFunction(IOMUX_PINCM28, IOMUX_PINCM28_PF_TIMA0_CCP0_CMPL);
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
@@ -69,6 +82,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
     DL_SYSCTL_setSYSOSCFreq(DL_SYSCTL_SYSOSC_FREQ_BASE);
     DL_SYSCTL_setMCLKDivider(DL_SYSCTL_MCLK_DIVIDER_DISABLE);
 
-    //Low Power Mode is configured to be SLEEP0
+    // Low Power Mode is configured to be SLEEP0
     DL_SYSCTL_setBORThreshold(DL_SYSCTL_BOR_THRESHOLD_LEVEL_0);
 }
