@@ -10,6 +10,23 @@
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
 
+void startupAnimation(auto& leds) noexcept
+{
+    for (unsigned int i = 0; i < numLeds; ++i) {
+        leds.setLed(i, 0xff);
+        leds.show();
+        delay_cycles(2000000);
+    }
+
+    delay_cycles(30000000);
+
+    for (unsigned int i = numLeds - 1; i >= 0; --i) {
+        leds.setLed(i, 0);
+        leds.show();
+        delay_cycles(2000000);
+    }
+}
+
 [[noreturn]] int main()
 {
     SYSCFG_DL_init();
@@ -40,7 +57,7 @@ static constexpr unsigned int numLeds = 8;    // TODO define where?
 
     timA0.enable();
 
-    // TODO display startup animation
+    startupAnimation(leds);
 
     while (1) {
 
