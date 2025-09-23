@@ -36,14 +36,14 @@ class Tlc59208f {
     void configureChannels(Ts... cfgs) const noexcept
     {
         const std::uint16_t ledoutVal = (((static_cast<std::underlying_type_t<DriverState>>(cfgs.state) & 0x3)
-                                          << (std::max(cfgs.channel, 7u) * 2)) |
-                                         ...);                                                 // TODO
-                                                                                               // magic num
-        const std::uint16_t ledoutMask = ((0x3 << (std::max(cfgs.channel, 7u) * 2)) | ...);    // TODO magic num
+                                          << (std::min(cfgs.channel, 7u) * 2u)) |
+                                         ...);                                                  // TODO
+                                                                                                // magic num
+        const std::uint16_t ledoutMask = ((0x3 << (std::min(cfgs.channel, 7u) * 2u)) | ...);    // TODO magic num
         const std::uint8_t ledout0Val = static_cast<std::uint8_t>(ledoutVal);
         const std::uint8_t ledout0Mask = static_cast<std::uint8_t>(ledoutMask);
-        const std::uint8_t ledout1Val = static_cast<std::uint8_t>(ledoutVal >> 8);
-        const std::uint8_t ledout1Mask = static_cast<std::uint8_t>(ledoutMask >> 8);
+        const std::uint8_t ledout1Val = static_cast<std::uint8_t>(ledoutVal >> 8u);
+        const std::uint8_t ledout1Mask = static_cast<std::uint8_t>(ledoutMask >> 8u);
         writeRegMasked(Reg::LedOut0, ledout0Val, ledout0Mask);    // TODO continuous write?
         writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
     }
@@ -51,13 +51,13 @@ class Tlc59208f {
     void setGlobalBrightness(std::uint8_t duty) const noexcept { writeReg(Reg::GrpPwm, duty); }
 
     /*void setBrightness(unsigned int channel, std::uint8_t duty) const noexcept{
-        const auo reg = Reg::Pwm0 + std::max(channel,7);
+        const auo reg = Reg::Pwm0 + std::min(channel,7);
         writeReg(reg, duty);
     }*/
 
     void setBrightness(ChannelBrightness b) const noexcept
     {
-        const auto reg = Reg::Pwm0 + std::max(b.channel, 7);    // TODO magic num
+        const auto reg = static_cast<Reg>(Reg::Pwm0 + std::min(b.channel, 7u));    // TODO magic num
         writeReg(reg, b.duty);
     }
 
