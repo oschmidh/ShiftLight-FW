@@ -1,4 +1,5 @@
 #include "I2c.hpp"
+#include "CaptureTim.hpp"
 #include "Tlc59208f.hpp"
 
 #include "ti_msp_dl_config.h"
@@ -86,6 +87,9 @@ class LedController {
 {
     SYSCFG_DL_init();
 
+    CaptureTimA timA0;    // TODO rename variable?
+    timA0.init();
+
     I2c i2c0;
     i2c0.init();
 
@@ -95,12 +99,18 @@ class LedController {
     LedController leds(driver);
     leds.init();
 
-    // TODO add and configure timer
+    timA0.enable();
 
     // TODO display startup animation
 
     while (1) {
-        const unsigned int rpm = 4300;    // TODO fixed for test
+
+        static constexpr unsigned int scaler = 1 << 20;
+        // TODO explain why /2
+        const auto rpm =
+            scaler / std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(
+                         timA0.getPeriod())
+                         .count();
 
         updateLeds(leds, rpm);
 
