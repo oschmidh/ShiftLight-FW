@@ -1,6 +1,7 @@
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
 #include "Tlc59208f.hpp"
+#include "Veml7700.hpp"
 #include "I2c.hpp"
 #include "CaptureTim.hpp"
 #include "System.hpp"
@@ -41,6 +42,14 @@ void startupAnimation(auto& leds) noexcept
 
     I2c i2c0;
     i2c0.init();
+
+    static constexpr std::uint8_t alsI2cAddr = 0x10;    // TODO define somewhere else
+    Veml7700 ambientLightSens(i2c0, alsI2cAddr);
+    ambientLightSens.configure({.gain = Veml7700<I2c>::Gain::Gain2,
+                                .it = Veml7700<I2c>::IntegrationTime::Int100ms,
+                                .pers = Veml7700<I2c>::Persistence::Pers4,
+                                .interruptEn = false,
+                                .powerOn = true});
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(i2c0, ledDriverI2cAddr);
