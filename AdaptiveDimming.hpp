@@ -15,7 +15,7 @@ class AdaptiveDimming {
 
     constexpr void init() noexcept
     {
-        _filteredVal << _sens.fetch();
+        _filteredVal.init(_sens.fetch());
         setDayMode(_filteredVal > dayThreshold);
     }
 

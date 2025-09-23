@@ -3,10 +3,11 @@
 
 #include <array>
 
-// TODO handle the case when buf is not full yet
 template <typename T, std::size_t DEPTH_V>
 class MovingMean {
   public:
+    constexpr void init(T&& sample) noexcept { std::ranges::fill(_buf, sample); }
+
     constexpr void addSample(T&& sample) noexcept
     {
         _buf[_head] = sample;
