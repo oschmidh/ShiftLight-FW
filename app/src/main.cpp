@@ -1,4 +1,5 @@
 #include "ShiftLight.hpp"
+#include "AdaptiveDimming.hpp"
 #include "LedBuffer.hpp"
 #include "Devices.hpp"
 #include "System.hpp"
@@ -99,6 +100,9 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     LedBuffer<Tlc59208f<mspm0::I2cController>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
+    AdaptiveDimming dimmingControl(ambientLightSens, ledDriver);
+    dimmingControl.init();
+
     Devices::rpmCaptureTim.enable();
 
     startupAnimation(sysTime, leds);
@@ -114,7 +118,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
         Devices::rpmCaptureTim.getPeriod().transform(updateLeds);
 
-        // TODO implement dimming based on ambient light sensor?
+        dimmingControl.update();    // TODO only call every x seconds
 
         asm volatile("wfe" ::: "memory");
     }
