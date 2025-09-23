@@ -1,3 +1,4 @@
+#include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
 #include "Tlc59208f.hpp"
 #include "I2c.hpp"
@@ -7,35 +8,7 @@
 
 #include <cstdint>
 
-static constexpr unsigned int targetRpm = 5000;
-static constexpr unsigned int minRpm = 4000;    // TODO better name
-
-static constexpr unsigned int numLeds = 8;
-static constexpr unsigned int colorDepth = 16;                                    // amount of brightness steps used
-static constexpr unsigned int stepSize = (targetRpm - minRpm) / (numLeds - 1);    // TODO correct?
-
-constexpr unsigned int threshold(unsigned int ledNo) noexcept
-{
-    return minRpm + stepSize * ledNo;    // TODO check
-}
-
-void updateLeds(auto& leds, unsigned int rpm) noexcept
-{    // TODO better name?
-    unsigned int i = 0;
-    for (; i < numLeds; ++i) {
-        if (rpm < threshold(i)) {
-            break;
-        }
-
-        leds.setLed(i, (rpm - threshold(i)) * colorDepth / stepSize);
-    }
-
-    for (; i < numLeds; ++i) {
-        leds.setLed(i, 0);
-    }
-
-    // TODO implement blinking at overreving?
-}
+static constexpr unsigned int numLeds = 8;    // TODO define where?
 
 [[noreturn]] int main()
 {
@@ -63,6 +36,7 @@ void updateLeds(auto& leds, unsigned int rpm) noexcept
         Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
 
     LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
+    ShiftLight shiftLight(leds);
 
     timA0.enable();
 
@@ -77,7 +51,7 @@ void updateLeds(auto& leds, unsigned int rpm) noexcept
                          timA0.getPeriod())
                          .count();
 
-        updateLeds(leds, rpm);
+        shiftLight.update(rpm);
 
         // TODO implement dimming based on ambient light sensor?
 
