@@ -1,12 +1,11 @@
+#include "LedBuffer.hpp"
+#include "Tlc59208f.hpp"
 #include "I2c.hpp"
 #include "CaptureTim.hpp"
-#include "Tlc59208f.hpp"
 
 #include "ti_msp_dl_config.h"
 
-#include <array>
 #include <cstdint>
-#include <optional>
 
 static constexpr unsigned int targetRpm = 5000;
 static constexpr unsigned int minRpm = 4000;    // TODO better name
@@ -38,59 +37,6 @@ void updateLeds(auto& leds, unsigned int rpm) noexcept
     // TODO implement blinking at overreving?
 }
 
-template <typename DRIVER_T>
-class LedController {
-  public:
-    constexpr LedController(DRIVER_T& ledDriver) noexcept
-     : _driver(ledDriver)
-    { }
-
-    constexpr void init() const noexcept
-    {
-        ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
-
-        // TODO kinda ugly api...
-        _driver.configureChannels(
-            Tlc59208f<I2c>::ChannelConfig{.channel = 0, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 1, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 2, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 3, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 4, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 5, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 6, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-            Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
-    }
-
-    constexpr void setLed(unsigned int idx, std::uint8_t brightness) noexcept
-    {
-        if (idx >= numLeds) {
-            return;
-        }
-
-        if (_ledBuf[idx] == brightness) {
-            return;
-        }
-
-        _ledBuf[idx] = brightness;
-    }
-
-    constexpr void refresh() noexcept
-    {
-        for (unsigned int i = 0; i < _ledBuf.size(); ++i) {
-            if (!_ledBuf[i].has_value()) {
-                continue;
-            }
-
-            _driver.setBrightness(i, _ledBuf[i].value());
-            _ledBuf[i].reset();
-        }
-    }
-
-  private:
-    std::array<std::optional<std::uint8_t>, numLeds> _ledBuf{};
-    const DRIVER_T& _driver;
-};
-
 [[noreturn]] int main()
 {
     SYSCFG_DL_init();
@@ -103,9 +49,20 @@ class LedController {
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(i2c0, ledDriverI2cAddr);
+    ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
 
-    LedController leds(ledDriver);
-    leds.init();
+    // TODO kinda ugly api...
+    ledDriver.configureChannels(
+        Tlc59208f<I2c>::ChannelConfig{.channel = 0, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 1, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 2, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 3, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 4, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 5, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 6, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+        Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
+
+    LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
 
     timA0.enable();
 
