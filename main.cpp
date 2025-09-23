@@ -47,10 +47,18 @@ class LedController {
 
     constexpr void init() const noexcept
     {
-        [this]<unsigned int... IDX_Vs>(std::index_sequence<IDX_Vs...>) noexcept {
-            _driver.configureChannels(
-                (Tlc59208f<I2c>::ChannelConfig{IDX_Vs, Tlc59208f<I2c>::DriverState::GroupCtrl}, ...));
-        }(std::make_index_sequence<numLeds>());
+        ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
+
+        // TODO kinda ugly api...
+        _driver.configureChannels(
+            Tlc59208f<I2c>::ChannelConfig{.channel = 0, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 1, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 2, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 3, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 4, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 5, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 6, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
+            Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
     }
 
     constexpr void setLed(unsigned int idx, std::uint8_t brightness) noexcept
@@ -93,10 +101,10 @@ class LedController {
     I2c i2c0;
     i2c0.init();
 
-    static constexpr std::uint8_t ledDriverI2cAddr = 0xff;    // TODO define somewhere else
-    Tlc59208f driver(i2c0, ledDriverI2cAddr);
+    static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
+    Tlc59208f ledDriver(i2c0, ledDriverI2cAddr);
 
-    LedController leds(driver);
+    LedController leds(ledDriver);
     leds.init();
 
     timA0.enable();

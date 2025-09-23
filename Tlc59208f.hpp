@@ -21,15 +21,29 @@ class Tlc59208f {
         GroupCtrl = 3,
     };
 
+    enum class Mode : std::uint8_t {
+        Normal = 0x00,
+        Sleep = 0x10,
+    };
+
     struct ChannelConfig {
         unsigned int channel;
         DriverState state;
+    };
+
+    struct DevConfig {
+        Mode mode;
     };
 
     constexpr Tlc59208f(const I2C_T& bus, std::uint8_t i2cAddr) noexcept
      : _i2cAddr(i2cAddr)
      , _bus(bus)
     { }
+
+    void configure(DevConfig cfg) const noexcept
+    {
+        writeReg(Reg::Mode1, static_cast<std::underlying_type_t<Mode>>(cfg.mode));
+    }
 
     template <typename... Ts>
         requires(std::is_same_v<Ts, ChannelConfig> && ...)
