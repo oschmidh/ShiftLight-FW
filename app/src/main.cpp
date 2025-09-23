@@ -4,6 +4,7 @@
 #include "System.hpp"
 #include "MpUnitsChronoConv.hpp"
 #include <drivers/Tlc59208f.hpp>
+#include "Veml7700.hpp"
 
 #include <mp-units/systems/si.h>
 
@@ -58,6 +59,14 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     Devices::rpmCaptureTim.init();
 
     Devices::i2c.init();
+
+    static constexpr std::uint8_t alsI2cAddr = 0x10;    // TODO define somewhere else
+    Veml7700 ambientLightSens(i2c0, alsI2cAddr);
+    ambientLightSens.configure({.gain = Veml7700<I2c>::Gain::Gain2,
+                                .it = Veml7700<I2c>::IntegrationTime::Int100ms,
+                                .pers = Veml7700<I2c>::Persistence::Pers4,
+                                .interruptEn = false,
+                                .powerOn = true});
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(Devices::i2c, ledDriverI2cAddr);
