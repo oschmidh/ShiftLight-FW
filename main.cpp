@@ -1,3 +1,4 @@
+#include "AdaptiveDimming.hpp"
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
 #include "Tlc59208f.hpp"
@@ -64,6 +65,9 @@ void startupAnimation(auto& leds) noexcept
     LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
     ShiftLight shiftLight(leds);
 
+    AdaptiveDimming dimmingControl(ambientLightSens, ledDriver);
+    dimmingControl.init();
+
     timA0.enable();
 
     startupAnimation(leds);
@@ -79,7 +83,7 @@ void startupAnimation(auto& leds) noexcept
 
         shiftLight.update(rpm);
 
-        // TODO implement dimming based on ambient light sensor?
+        dimmingControl.update();    // TODO only call every x seconds
 
         // TODO delay?
     }
