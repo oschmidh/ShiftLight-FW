@@ -2,6 +2,7 @@
 #define TLC59208F_HPP
 
 #include <algorithm>
+#include <expected>
 #include <span>
 #include <type_traits>
 #include <cstdint>
@@ -9,6 +10,8 @@
 template <typename I2C_T>
 class Tlc59208f {
   public:
+    using ErrorType = I2C_T::ErrorType;
+
     struct ChannelBrightness {
         unsigned int channel;
         std::uint8_t duty;
@@ -104,29 +107,36 @@ class Tlc59208f {
         AllCallAdr,
     };
 
-    void writeRegMasked(Reg reg, RegType val, RegType mask) const noexcept
+    ErrorType writeRegMasked(Reg reg, RegType val, RegType mask) const noexcept
     {
-        const RegType prev = readReg(reg);
-        const RegType newVal = (prev & ~mask) | val;
-        writeReg(reg, newVal);
+        const auto prev = readReg(reg);
+        if (!prev.has_value()) {
+            return prev.error();
+        }
+        const RegType newVal = (prev.value() & ~mask) | val;
+        return writeReg(reg, newVal);
     }
 
     // TODO implement consecutive read and write
-    void writeConsecutiveRegs(Reg firstReg, std::span<RegType> vals) const noexcept
+    ErrorType writeConsecutiveRegs(Reg firstReg, std::span<RegType> vals) const noexcept
     {
         // TODO implement
     }
 
-    void writeReg(Reg reg, RegType val) const noexcept
+    ErrorType writeReg(Reg reg, RegType val) const noexcept
     {
         const std::array<std::uint8_t, 2> buf{reg, val};
-        _bus.write(_i2cAddr, buf);
+        return _bus.write(_i2cAddr, buf);
     }
 
-    RegType readReg(Reg reg) const noexcept
+    std::expected<RegType, ErrorType> readReg(Reg reg) const noexcept
     {
         RegType val;
-        _bus.transfer(_i2cAddr, std::span{reinterpret_cast<std::uint8_t*>(&reg), 1}, std::span{&val, 1});
+        if (const auto err =
+                _bus.transfer(_i2cAddr, std::span{reinterpret_cast<std::uint8_t*>(&reg), 1}, std::span{&val, 1});
+            err != ErrorType::NoError) {
+            return std::unexpected(err);
+        }
         return val;
     }
 

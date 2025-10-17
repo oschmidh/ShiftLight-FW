@@ -7,8 +7,16 @@
 #include <span>
 #include <cstdint>
 
+enum class I2cError {
+    NoError,
+    IoError,
+    InvalidParam,
+};
+
 class I2c {    // TODO call i2cController?
   public:
+    using ErrorType = I2cError;
+
     I2c() noexcept { }
 
     void init() noexcept
@@ -41,11 +49,11 @@ class I2c {    // TODO call i2cController?
     }
 
     // TODO should be std::byte instead of uint8?
-    void write(std::uint8_t addr, std::span<const std::uint8_t> data) const noexcept
+    ErrorType write(std::uint8_t addr, std::span<const std::uint8_t> data) const noexcept
     {
         const auto size = data.size();
-        if (size > 0xfff) {    // TODO unlikely?
-            return;            // TODO return error
+        if (size > 0xfff) {                    // TODO unlikely?
+            return ErrorType::InvalidParam;    // TODO return error
         }
 
         const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
@@ -67,21 +75,23 @@ class I2c {    // TODO call i2cController?
 
         /* Trap if there was an error */
         if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
-            return;    // TODO return error code?
+            return ErrorType::IoError;    // TODO return error code?
         }
 
         while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
             ;
+
+        return ErrorType::NoError;
     }
 
     // Write transaction, followed by a read transaction with restart in between
-    void transfer(std::uint8_t addr, std::span<const std::uint8_t> writebuf,
-                  std::span<std::uint8_t> readbuf) const noexcept
+    ErrorType transfer(std::uint8_t addr, std::span<const std::uint8_t> writebuf,
+                       std::span<std::uint8_t> readbuf) const noexcept
     {    // TODO should be std::byte instead of uint8?
 
         static constexpr unsigned int txFifoSize = 8;    // TODO hardcoded here?
         if (writebuf.size() > txFifoSize) {
-            return;    // TODO not implemented
+            return ErrorType::NoError;    // TODO not implemented
         }
 
         DL_I2C_enableControllerReadOnTXEmpty(I2C0);
@@ -92,6 +102,8 @@ class I2c {    // TODO call i2cController?
                 ;
             byte = DL_I2C_receiveControllerData(I2C0);
         }
+
+        return ErrorType::NoError;
     }
 
   private:
