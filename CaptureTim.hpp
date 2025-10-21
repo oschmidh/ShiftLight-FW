@@ -13,46 +13,46 @@ volatile bool gSynced;
 volatile bool gCheckCaptures;
 uint32_t gLoadValue;
 
-class CaptureTimA {
+class CaptureTimG {
   public:
     static constexpr unsigned int presc = 255;            // TODO hardcoded here
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTimA() noexcept { }
+    constexpr CaptureTimG() noexcept { }
 
     void init() noexcept
     {
-        DL_TimerA_reset(TIMA0);
+        DL_TimerG_reset(TIMG8);
 
-        DL_TimerA_enablePower(TIMA0);
+        DL_TimerG_enablePower(TIMG8);
 
-        constexpr DL_TimerA_ClockConfig clkCfg{
+        constexpr DL_TimerG_ClockConfig clkCfg{
             .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
-        DL_TimerA_setClockConfig(TIMA0, &clkCfg);
+        DL_TimerG_setClockConfig(TIMG8, &clkCfg);
 
         // TODO should only use pulseWidth capture mode?
-        constexpr DL_TimerA_CaptureCombinedConfig captureCfg = {
+        constexpr DL_TimerG_CaptureCombinedConfig captureCfg = {
             .captureMode = DL_TIMER_CAPTURE_COMBINED_MODE_PULSE_WIDTH_AND_PERIOD,
             .period = 49151,    // TODO??
             .startTimer = DL_TIMER_STOP,
-            .inputChan = DL_TIMER_INPUT_CHAN_0,
-            .inputInvMode = DL_TIMER_CC_INPUT_INV_INVERT,
+            .inputChan = DL_TIMER_INPUT_CHAN_1,
+            .inputInvMode = DL_TIMER_CC_INPUT_INV_NOINVERT,
         };
 
-        DL_TimerA_initCaptureCombinedMode(TIMA0, &captureCfg);
-        DL_TimerA_enableInterrupt(TIMA0, DL_TIMERA_INTERRUPT_CC1_DN_EVENT | DL_TIMERA_INTERRUPT_ZERO_EVENT);
+        DL_TimerG_initCaptureCombinedMode(TIMG8, &captureCfg);
+        DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_DN_EVENT | DL_TIMERG_INTERRUPT_ZERO_EVENT);
 
-        DL_TimerA_enableClock(TIMA0);
+        DL_TimerG_enableClock(TIMG8);
     }
 
     void enable() noexcept
     {
-        gLoadValue = DL_TimerG_getLoadValue(TIMA0);    // TODO ??
+        gLoadValue = DL_TimerG_getLoadValue(TIMG8);    // TODO ??
 
-        DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
+        DL_TimerG_setCoreHaltBehavior(TIMG8, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
-        NVIC_EnableIRQ(TIMA0_INT_IRQn);
-        DL_TimerA_startCounter(TIMA0);
+        NVIC_EnableIRQ(TIMG8_INT_IRQn);
+        DL_TimerG_startCounter(TIMG8);
     }
 
     using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
@@ -70,18 +70,18 @@ class CaptureTimA {
   private:
 };
 
-extern "C" void TIMA0_IRQHandler(void)
+extern "C" void TIMG8_IRQHandler(void)
 {
-    switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
+    switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
         case DL_TIMERG_IIDX_CC1_DN:
             if (gSynced == true) {
-                gCaptureCnt = DL_TimerA_getCaptureCompareValue(TIMA0, DL_TIMER_CC_1_INDEX);
+                gCaptureCnt = DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX);
                 gCheckCaptures = true;
             } else {
                 gSynced = true;
             }
             /* Manual reload is needed to workaround timer capture limitation */
-            DL_TimerG_setTimerCount(TIMA0, gLoadValue);
+            DL_TimerG_setTimerCount(TIMG8, gLoadValue);
             break;
         case DL_TIMERG_IIDX_ZERO:
             /* If Timer reaches zero then no PWM signal is detected and it

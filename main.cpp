@@ -31,8 +31,8 @@ void startupAnimation(auto& leds) noexcept
 {
     SYSCFG_DL_init();
 
-    CaptureTimA timA0;    // TODO rename variable?
-    timA0.init();
+    CaptureTimG timG8;    // TODO rename variable?
+    timG8.init();
 
     I2c i2c0;
     i2c0.init();
@@ -55,7 +55,7 @@ void startupAnimation(auto& leds) noexcept
     LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
     ShiftLight shiftLight(leds);
 
-    timA0.enable();
+    timG8.enable();
 
     startupAnimation(leds);
 
@@ -65,7 +65,7 @@ void startupAnimation(auto& leds) noexcept
         // TODO explain why /2
         const auto rpm =
             scaler / std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(
-                         timA0.getPeriod())
+                         timG8.getPeriod())
                          .count();
 
         shiftLight.update(rpm);
