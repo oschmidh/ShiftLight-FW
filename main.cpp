@@ -20,7 +20,7 @@ void startupAnimation(auto& leds) noexcept
 
     delay_cycles(30000000);
 
-    for (unsigned int i = numLeds - 1; i >= 0; --i) {
+    for (int i = numLeds - 1; i >= 0; --i) {
         leds.setLed(i, 0);
         leds.show();
         delay_cycles(2000000);
