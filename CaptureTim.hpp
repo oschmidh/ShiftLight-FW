@@ -30,16 +30,20 @@ class CaptureTimG {
             .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
         DL_TimerG_setClockConfig(TIMG8, &clkCfg);
 
-        // TODO should only use pulseWidth capture mode?
-        constexpr DL_TimerG_CaptureCombinedConfig captureCfg = {
-            .captureMode = DL_TIMER_CAPTURE_COMBINED_MODE_PULSE_WIDTH_AND_PERIOD,
+        constexpr DL_TimerG_CaptureConfig captureCfg = {
+            .captureMode = DL_TIMER_CAPTURE_MODE_PERIOD_CAPTURE,
             .period = 49151,    // TODO??
             .startTimer = DL_TIMER_STOP,
+            .edgeCaptMode = DL_TIMER_CAPTURE_EDGE_DETECTION_MODE_FALLING,
             .inputChan = DL_TIMER_INPUT_CHAN_1,
             .inputInvMode = DL_TIMER_CC_INPUT_INV_NOINVERT,
         };
 
-        DL_TimerG_initCaptureCombinedMode(TIMG8, &captureCfg);
+        DL_TimerG_initCaptureMode(TIMG8, &captureCfg);
+        // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
+        // Therefore the capture register would always contain the load value
+        TIMG8->COUNTERREGS.CCCTL_01[1] &= ~GPTIMER_CCCTL_01_LCOND_MASK;
+
         DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_DN_EVENT | DL_TIMERG_INTERRUPT_ZERO_EVENT);
 
         DL_TimerG_enableClock(TIMG8);
