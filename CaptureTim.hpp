@@ -11,7 +11,6 @@
 volatile uint32_t gCaptureCnt;
 volatile bool gSynced;
 volatile bool gCheckCaptures;
-uint32_t gLoadValue;
 
 class CaptureTimG {
   public:
@@ -31,7 +30,7 @@ class CaptureTimG {
         DL_TimerG_setClockConfig(TIMG8, &clkCfg);
 
         constexpr DL_TimerG_CaptureConfig captureCfg = {
-            .captureMode = DL_TIMER_CAPTURE_MODE_PERIOD_CAPTURE,
+            .captureMode = DL_TIMER_CAPTURE_MODE_PERIOD_CAPTURE_UP,
             .period = 49151,    // TODO??
             .startTimer = DL_TIMER_STOP,
             .edgeCaptMode = DL_TIMER_CAPTURE_EDGE_DETECTION_MODE_FALLING,
@@ -44,15 +43,13 @@ class CaptureTimG {
         // Therefore the capture register would always contain the load value
         TIMG8->COUNTERREGS.CCCTL_01[1] &= ~GPTIMER_CCCTL_01_LCOND_MASK;
 
-        DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_DN_EVENT | DL_TIMERG_INTERRUPT_ZERO_EVENT);
+        DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
         DL_TimerG_enableClock(TIMG8);
     }
 
     void enable() noexcept
     {
-        gLoadValue = DL_TimerG_getLoadValue(TIMG8);    // TODO ??
-
         DL_TimerG_setCoreHaltBehavior(TIMG8, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
         NVIC_EnableIRQ(TIMG8_INT_IRQn);
@@ -68,7 +65,7 @@ class CaptureTimG {
         }
         gCheckCaptures = false;
 
-        return PeriodType{gLoadValue - gCaptureCnt};
+        return PeriodType{gCaptureCnt};
     }
 
   private:
@@ -77,7 +74,7 @@ class CaptureTimG {
 extern "C" void TIMG8_IRQHandler(void)
 {
     switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
-        case DL_TIMERG_IIDX_CC1_DN:
+        case DL_TIMERG_IIDX_CC1_UP:
             if (gSynced == true) {
                 gCaptureCnt = DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX);
                 gCheckCaptures = true;
@@ -85,10 +82,10 @@ extern "C" void TIMG8_IRQHandler(void)
                 gSynced = true;
             }
             /* Manual reload is needed to workaround timer capture limitation */
-            DL_TimerG_setTimerCount(TIMG8, gLoadValue);
+            DL_TimerG_setTimerCount(TIMG8, 0);
             break;
-        case DL_TIMERG_IIDX_ZERO:
-            /* If Timer reaches zero then no PWM signal is detected and it
+        case DL_TIMERG_IIDX_OVERFLOW:
+            /* If Timer reaches overflows then no PWM signal is detected and it
              * requires re-synchronization
              */
             gSynced = false;
