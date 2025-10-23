@@ -72,6 +72,6 @@ void startupAnimation(auto& leds) noexcept
 
         // TODO implement dimming based on ambient light sensor?
 
-        // TODO delay?
+        __WFE();
     }
 }

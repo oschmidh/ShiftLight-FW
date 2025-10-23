@@ -8,9 +8,7 @@
 #include <cstdint>
 
 // TODO integrate in class
-volatile uint32_t gCaptureCnt;
 volatile bool gSynced;
-volatile bool gCheckCaptures;
 
 class CaptureTimG {
   public:
@@ -60,12 +58,11 @@ class CaptureTimG {
 
     PeriodType getPeriod() const noexcept
     {
-        while (!gCheckCaptures) {
-            __WFE();
+        if (!gSynced) {
+            return PeriodType{0};
         }
-        gCheckCaptures = false;
 
-        return PeriodType{gCaptureCnt};
+        return PeriodType{DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX)};
     }
 
   private:
@@ -75,12 +72,7 @@ extern "C" void TIMG8_IRQHandler(void)
 {
     switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
         case DL_TIMERG_IIDX_CC1_UP:
-            if (gSynced == true) {
-                gCaptureCnt = DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX);
-                gCheckCaptures = true;
-            } else {
-                gSynced = true;
-            }
+            gSynced = true;
             /* Manual reload is needed to workaround timer capture limitation */
             DL_TimerG_setTimerCount(TIMG8, 0);
             break;
