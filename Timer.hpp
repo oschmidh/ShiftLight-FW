@@ -9,7 +9,7 @@ class Timer {
   public:
     template <typename REP_T, typename PERIOD_T>
     Timer(const SYS_TIM_T& sysTim, std::chrono::duration<REP_T, PERIOD_T> period) noexcept
-     : Timer(sysTim, sysTim.toTicks(period))
+     : Timer(sysTim, SYS_TIM_T::toTicks(period))
     { }
 
     Timer(const SYS_TIM_T& sysTim, SYS_TIM_T::TickType period) noexcept

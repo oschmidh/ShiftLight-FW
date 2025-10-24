@@ -44,7 +44,7 @@ class CounterTimA {
     TickType getTicks() const noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
     template <typename REP_T, typename PERIOD_T>
-    constexpr TickType toTicks(std::chrono::duration<REP_T, PERIOD_T> duration) const noexcept
+    static constexpr TickType toTicks(std::chrono::duration<REP_T, PERIOD_T> duration) noexcept
     {
         return std::chrono::duration_cast<DurationType>(duration).count();
     }
