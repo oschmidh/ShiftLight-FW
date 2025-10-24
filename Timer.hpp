@@ -30,13 +30,13 @@ class Timer {
 
     void reload() noexcept { _start = now(); }
 
-    void handle(auto&& action) noexcept    // TODO find proper name
+    void poll(auto&& action) noexcept    // TODO find proper name
     {
         if (!isElapsed()) {
             return;
         }
-        action();
         reload();
+        action();
     }
 
   private:

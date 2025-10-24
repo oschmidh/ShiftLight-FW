@@ -70,4 +70,4 @@ class ShiftLight {
     LED_T& _leds;
 };
 
-#endif
+#endif    // SHIFTLIGHT_HPP
