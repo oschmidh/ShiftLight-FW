@@ -3,7 +3,7 @@ app_include_dirs = include_directories('include')
 app_sources = files(
     'src/main.cpp',
     'src/ti_msp_dl_config.c',
-    'src/startup_mspm0c110x_gcc.c'
+    'src/startup.cpp'
 )
 
 project_include_dirs += app_include_dirs

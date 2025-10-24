@@ -1,9 +1,8 @@
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
+#include "Devices.hpp"
 #include "System.hpp"
 #include <drivers/Tlc59208f.hpp>
-#include <mspm0/I2c.hpp>
-#include <mspm0/CaptureTim.hpp>
 
 #include "ti_msp_dl_config.h"
 
@@ -30,6 +29,10 @@ void startupAnimation(auto& leds) noexcept
     }
 }
 
+I2c Devices::i2c0;
+CaptureTimG Devices::timG8;
+TimA0Clock Devices::timA0;
+
 [[noreturn]] int main()
 {
     SYSCFG_DL_init();
@@ -37,14 +40,12 @@ void startupAnimation(auto& leds) noexcept
     System::SteadyClock sysTime{};
     sysTime.init();
 
-    CaptureTimG timG8;    // TODO rename variable?
-    timG8.init();
+    Devices::timG8.init();
 
-    I2c i2c0;
-    i2c0.init();
+    Devices::i2c0.init();
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
-    Tlc59208f ledDriver(i2c0, ledDriverI2cAddr);
+    Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
     ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
 
     // TODO kinda ugly api...
@@ -71,7 +72,7 @@ void startupAnimation(auto& leds) noexcept
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    timG8.enable();
+    Devices::timG8.enable();
 
     startupAnimation(leds);
 
@@ -89,7 +90,7 @@ void startupAnimation(auto& leds) noexcept
             shiftLight.update(rpm);
         };
 
-        timG8.getPeriod().transform(updateLeds);
+        Devices::timG8.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 

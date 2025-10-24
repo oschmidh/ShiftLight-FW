@@ -23,7 +23,7 @@ link_args = [
     ]
 
 [properties]
-linker_script = 'mspm0c1104.lds'
+linker_script = 'subprojects/mspm0-sdk/source/ti/devices/msp/m0p/linker_files/gcc/mspm0c1104.lds'
 
 [built-in options]
 c_args = compile_args

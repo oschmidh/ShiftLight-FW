@@ -5,10 +5,8 @@
 #include "ti_msp_dl_config.h"
 
 #include <chrono>
+#include <expected>
 #include <cstdint>
-
-// TODO integrate in class
-volatile bool gSynced;
 
 enum class CaptureTimError {
     NoError,
@@ -18,6 +16,7 @@ enum class CaptureTimError {
 class CaptureTimG {
   public:
     using ErrorType = CaptureTimError;
+    static constexpr auto intLine = std::integral_constant<unsigned int, TIMG8_INT_IRQn>{};
 
     static constexpr unsigned int presc = 255;            // TODO hardcoded here
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
@@ -65,32 +64,33 @@ class CaptureTimG {
 
     std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
-        if (!gSynced) {
+        if (!_synced) {
             return std::unexpected(CaptureTimError::NotSynced);
         }
 
         return PeriodType{DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX)};
     }
 
+    void isr() noexcept
+    {
+        switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
+            case DL_TIMERG_IIDX_CC1_UP:
+                _synced = true;
+                /* Manual reload is needed to workaround timer capture limitation */
+                DL_TimerG_setTimerCount(TIMG8, 0);
+                break;
+            case DL_TIMERG_IIDX_OVERFLOW:
+                /* If Timer reaches overflows then no PWM signal is detected and it
+                 * requires re-synchronization
+                 */
+                _synced = false;
+                break;
+            default: break;
+        }
+    }
+
   private:
+    volatile bool _synced{};
 };
 
-extern "C" void TIMG8_IRQHandler(void)
-{
-    switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
-        case DL_TIMERG_IIDX_CC1_UP:
-            gSynced = true;
-            /* Manual reload is needed to workaround timer capture limitation */
-            DL_TimerG_setTimerCount(TIMG8, 0);
-            break;
-        case DL_TIMERG_IIDX_OVERFLOW:
-            /* If Timer reaches overflows then no PWM signal is detected and it
-             * requires re-synchronization
-             */
-            gSynced = false;
-            break;
-        default: break;
-    }
-}
-
-#endif // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
+#endif    // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP

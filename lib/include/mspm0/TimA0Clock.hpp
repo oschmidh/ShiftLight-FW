@@ -8,6 +8,8 @@
 
 class TimA0Clock {
   public:
+    static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
+
     static constexpr unsigned int presc = 255;             // TODO hardcoded here
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
 
@@ -18,7 +20,7 @@ class TimA0Clock {
 
     static void init(IsrType isrCallback) noexcept
     {
-        isr = isrCallback;
+        isrCb = isrCallback;
 
         DL_TimerA_reset(TIMA0);
         DL_TimerA_enablePower(TIMA0);
@@ -46,19 +48,20 @@ class TimA0Clock {
 
     static TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
-    inline static IsrType isr;    // TODO should be private?
+    static void isr()
+    {
+        switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
+            case DL_TIMERG_IIDX_LOAD:
+                if (TimA0Clock::isrCb) {
+                    TimA0Clock::isrCb();
+                }
+                break;
+            default: break;
+        }
+    }
+
+  private:
+    inline static IsrType isrCb;
 };
 
-extern "C" void TIMA0_IRQHandler(void)    // TODO should be part of TimA0Clock
-{
-    switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
-        case DL_TIMERG_IIDX_LOAD:
-            if (TimA0Clock::isr) {
-                TimA0Clock::isr();
-            }
-            break;
-        default: break;
-    }
-}
-
-#endif // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#endif    // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
