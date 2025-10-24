@@ -3,14 +3,16 @@
 
 #include "ti_msp_dl_config.h"
 
+#include <chrono>
 #include <cstdint>
 
 class CounterTimA {
   public:
-    using TickType = std::uint32_t;
-
     static constexpr unsigned int presc = 255;            // TODO hardcoded here
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
+
+    using TickType = std::uint32_t;
+    using DurationType = std::chrono::duration<TickType, std::ratio<presc, timClk>>;
 
     constexpr CounterTimA() noexcept { }
 
@@ -40,6 +42,12 @@ class CounterTimA {
     void disable() noexcept { DL_TimerA_stopCounter(TIMA0); }
     TickType getPeriod() const noexcept { return DL_TimerA_getLoadValue(TIMA0); }
     TickType getTicks() const noexcept { return DL_TimerA_getTimerCount(TIMA0); }
+
+    template <typename REP_T, typename PERIOD_T>
+    constexpr TickType toTicks(std::chrono::duration<REP_T, PERIOD_T> duration) const noexcept
+    {
+        return std::chrono::duration_cast<DurationType>(duration).count();
+    }
 };
 
 #endif    // COUNTERTIM_HPP

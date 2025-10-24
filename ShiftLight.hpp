@@ -10,14 +10,13 @@ static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targe
 static_assert(targetRpm > minRpm);
 static_assert(blinkRpm > targetRpm);
 
-#include "ti_msp_dl_config.h"
-#include <cstdint>
+using namespace std::literals::chrono_literals;
 
 template <typename SYS_TIM_T, typename LED_T>
 class ShiftLight {
   public:
     constexpr ShiftLight(const SYS_TIM_T& sysTim, LED_T& leds) noexcept
-     : _blinkTimer(sysTim, 9000)
+     : _blinkTimer(sysTim, 100ms)
      , _leds(leds)
     { }
 
