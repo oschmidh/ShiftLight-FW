@@ -1,6 +1,8 @@
 #ifndef SHIFTLIGHT_HPP
 #define SHIFTLIGHT_HPP
 
+#include "Timer.hpp"
+
 static constexpr unsigned int minRpm = 4300;    // TODO better name
 static constexpr unsigned int targetRpm = 5700;
 static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targetRpm + stepsize
@@ -11,53 +13,12 @@ static_assert(blinkRpm > targetRpm);
 #include "ti_msp_dl_config.h"
 #include <cstdint>
 
-class Timer {
-  public:
-    /* template <typename REP_T, typename PERIOD_T>
-     Timer(std::chrono::duration<REP_T, PERIOD_T> period) noexcept
-      : Timer(toTicks(period))
-     { }*/
-
-    Timer(unsigned int period) noexcept
-     : _start(now())
-     , _period(period)
-    { }
-
-    bool isElapsed() const noexcept
-    {
-        const auto current = now();
-        if (_start > current) {    // handle overflow
-            return current + DL_TimerA_getLoadValue(TIMA0) - _start >= _period;
-        }
-
-        return current - _start >= _period;
-    }
-
-    void reload() noexcept { _start = now(); }
-
-    void handle(auto&& action) noexcept    // TODO find proper name
-    {
-        if (!isElapsed()) {
-            return;
-        }
-        action();
-        reload();
-    }
-
-  private:
-    static std::uint32_t now() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
-
-    unsigned int _start;
-    const unsigned int _period;
-};
-
-constexpr void periodicCall() noexcept { }
-
-template <typename LED_T>
+template <typename SYS_TIM_T, typename LED_T>
 class ShiftLight {
   public:
-    constexpr ShiftLight(LED_T& leds) noexcept
-     : _leds(leds)
+    constexpr ShiftLight(const SYS_TIM_T& sysTim, LED_T& leds) noexcept
+     : _blinkTimer(sysTim, 9000)
+     , _leds(leds)
     { }
 
     constexpr void update(unsigned int rpm) noexcept
@@ -106,7 +67,7 @@ class ShiftLight {
     }
 
     bool _blinkState{};
-    Timer _blinkTimer{9000};
+    Timer<SYS_TIM_T> _blinkTimer;
     LED_T& _leds;
 };
 
