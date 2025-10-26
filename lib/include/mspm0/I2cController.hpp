@@ -92,6 +92,9 @@ class I2cController {
             return ErrorType::NoError;    // TODO not implemented
         }
 
+        while (!_i2c.getControllerStatus().idle())
+            ;
+
         _i2c.setControllerTargetAddr(addr, I2c::Direction::Receive);
         _i2c.configureControllerOperation({.burstrun = true,
                                            .generateStart = true,
@@ -102,8 +105,12 @@ class I2cController {
         readbuf = _i2c.readRxFifo(readbuf);
 
         while (!readbuf.empty()) {
-            while (_i2c.getControllerRxFifoStatus().getCount() == 0)
-                ;
+            while (_i2c.getControllerRxFifoStatus().getCount() == 0) {
+                if (_i2c.getControllerStatus().error()) {
+                    return ErrorType::IoError;
+                }
+            }
+
             readbuf = _i2c.readRxFifo(readbuf);
         }
 
