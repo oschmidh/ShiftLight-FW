@@ -94,12 +94,19 @@ class I2c {    // TODO call i2cController?
             return ErrorType::NoError;    // TODO not implemented
         }
 
+        while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
+            ;
+
         DL_I2C_enableControllerReadOnTXEmpty(I2C0);
         DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_RX, readbuf.size());
 
         for (auto& byte : readbuf) {
-            while (DL_I2C_isControllerRXFIFOEmpty(I2C0))
-                ;
+            while (DL_I2C_isControllerRXFIFOEmpty(I2C0)) {
+                if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
+                    return ErrorType::IoError;    // TODO return error code?
+                }
+            }
+
             byte = DL_I2C_receiveControllerData(I2C0);
         }
 
