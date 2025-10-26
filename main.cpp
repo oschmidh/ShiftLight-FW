@@ -61,14 +61,19 @@ void startupAnimation(auto& leds) noexcept
 
     while (1) {
 
-        static constexpr unsigned int scaler = 1 << 20;
-        // TODO explain why /2
-        const auto rpm =
-            scaler / std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(
-                         timG8.getPeriod())
-                         .count();
+        auto updateLeds = [&shiftLight]<typename REP_T, typename PERIOD_T>(
+                              std::chrono::duration<REP_T, PERIOD_T> period) noexcept {
+            static constexpr unsigned int scaler = 1 << 20;
+            // TODO explain why /2
+            const auto rpm =
+                scaler /
+                std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(period)
+                    .count();
 
-        shiftLight.update(rpm);
+            shiftLight.update(rpm);
+        };
+
+        timG8.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 

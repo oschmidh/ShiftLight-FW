@@ -10,8 +10,15 @@
 // TODO integrate in class
 volatile bool gSynced;
 
+enum class CaptureTimError {
+    NoError,
+    NotSynced,
+};
+
 class CaptureTimG {
   public:
+    using ErrorType = CaptureTimError;
+
     static constexpr unsigned int presc = 255;            // TODO hardcoded here
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
@@ -56,10 +63,10 @@ class CaptureTimG {
 
     using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
 
-    PeriodType getPeriod() const noexcept
+    std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
         if (!gSynced) {
-            return PeriodType{0};
+            return std::unexpected(CaptureTimError::NotSynced);
         }
 
         return PeriodType{DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX)};
