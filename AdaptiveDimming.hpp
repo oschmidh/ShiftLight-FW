@@ -13,9 +13,14 @@ class AdaptiveDimming {
      , _disp(disp)
     { }
 
-    constexpr void init() noexcept
+    constexpr bool init() noexcept
     {
-        _filteredVal.init(_sens.fetch());
+        const auto val = _sens.fetch();
+        // if (val.has_value)
+
+        _sens.fetch().and_then(_filteredVal.init);
+
+        // _filteredVal.init(_sens.fetch());
         setDayMode(_filteredVal > dayThreshold);
     }
 
