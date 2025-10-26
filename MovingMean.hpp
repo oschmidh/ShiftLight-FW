@@ -1,6 +1,7 @@
 #ifndef MOVINGMEAN_HPP
 #define MOVINGMEAN_HPP
 
+#include <algorithm>
 #include <array>
 
 template <typename T, std::size_t DEPTH_V>
