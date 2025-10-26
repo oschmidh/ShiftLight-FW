@@ -13,28 +13,26 @@ class AdaptiveDimming {
      , _disp(disp)
     { }
 
-    constexpr bool init() noexcept
+    constexpr void init() noexcept
     {
-        const auto val = _sens.fetch();
-        // if (val.has_value)
+        _sens.fetch().transform(
+            [this](SENSOR_T::ValueType brightness) noexcept { _filteredVal.init(std::move(brightness)); });
 
-        _sens.fetch().and_then(_filteredVal.init);
-
-        // _filteredVal.init(_sens.fetch());
-        setDayMode(_filteredVal > dayThreshold);
+        setDayMode(_filteredVal.get() > dayThreshold);    // TODO should use conversion operator?
     }
 
     constexpr void update() noexcept
     {
-        _filteredVal << _sens.fetch();
+        _sens.fetch().transform(
+            [this](SENSOR_T::ValueType brightness) noexcept { _filteredVal.addSample(std::move(brightness)); });
 
         if (_dayMode) {
-            if (_filteredVal < nightThreshold) {
+            if (_filteredVal.get() < nightThreshold) {    // TODO should use conversion operator?
                 setDayMode(false);
             }
 
         } else {
-            if (_filteredVal > dayThreshold) {
+            if (_filteredVal.get() > dayThreshold) {    // TODO should use conversion operator?
                 setDayMode(true);
             }
         }
@@ -44,7 +42,7 @@ class AdaptiveDimming {
     constexpr void setDayMode(bool status) noexcept
     {
         _dayMode = status;
-        _disp.setBrightness(_dayMode ? dayModeBrightness : nightModeBrightness);
+        _disp.setGlobalBrightness(_dayMode ? dayModeBrightness : nightModeBrightness);    // TODO change name?
     }
 
     static constexpr std::uint8_t dayModeBrightness = 0xff;      // TODO make configurable?
@@ -61,4 +59,4 @@ class AdaptiveDimming {
     DISPLAY_T& _disp;
 };
 
-#endif
+#endif    // ADAPTIVEDIMMING_HPP
