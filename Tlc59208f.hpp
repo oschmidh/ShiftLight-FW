@@ -43,14 +43,14 @@ class Tlc59208f {
      , _bus(bus)
     { }
 
-    void configure(DevConfig cfg) const noexcept
+    ErrorType configure(DevConfig cfg) const noexcept
     {
-        writeReg(Reg::Mode1, static_cast<std::underlying_type_t<Mode>>(cfg.mode));
+        return writeReg(Reg::Mode1, static_cast<std::underlying_type_t<Mode>>(cfg.mode));
     }
 
     template <typename... Ts>
         requires(std::is_same_v<Ts, ChannelConfig> && ...)
-    void configureChannels(Ts... cfgs) const noexcept
+    ErrorType configureChannels(Ts... cfgs) const noexcept
     {
         const std::uint16_t ledoutVal = (((static_cast<std::underlying_type_t<DriverState>>(cfgs.state) & 0x3)
                                           << (std::min(cfgs.channel, 7u) * 2u)) |
@@ -61,21 +61,23 @@ class Tlc59208f {
         const std::uint8_t ledout0Mask = static_cast<std::uint8_t>(ledoutMask);
         const std::uint8_t ledout1Val = static_cast<std::uint8_t>(ledoutVal >> 8u);
         const std::uint8_t ledout1Mask = static_cast<std::uint8_t>(ledoutMask >> 8u);
-        writeRegMasked(Reg::LedOut0, ledout0Val, ledout0Mask);    // TODO continuous write?
-        writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
+        if (const auto err = writeRegMasked(Reg::LedOut0, ledout0Val, ledout0Mask); err != ErrorType::NoError) {
+            return err;
+        }    // TODO continuous write?
+        return writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
     }
 
-    void setGlobalBrightness(std::uint8_t duty) const noexcept { writeReg(Reg::GrpPwm, duty); }
+    ErrorType setGlobalBrightness(std::uint8_t duty) const noexcept { return writeReg(Reg::GrpPwm, duty); }
 
     /*void setBrightness(unsigned int channel, std::uint8_t duty) const noexcept{
         const auo reg = Reg::Pwm0 + std::min(channel,7);
         writeReg(reg, duty);
     }*/
 
-    void setBrightness(ChannelBrightness b) const noexcept
+    ErrorType setBrightness(ChannelBrightness b) const noexcept
     {
         const auto reg = static_cast<Reg>(Reg::Pwm0 + std::min(b.channel, 7u));    // TODO magic num
-        writeReg(reg, b.duty);
+        return writeReg(reg, b.duty);
     }
 
     void setBlinking() const noexcept
