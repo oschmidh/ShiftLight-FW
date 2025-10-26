@@ -47,23 +47,22 @@ class Veml7700 {
      , _bus(bus)
     { }
 
-    void configure(DevConfig cfg) const noexcept
+    ErrorType configure(DevConfig cfg) const noexcept
     {
         const RegType conf = static_cast<RegType>((static_cast<std::underlying_type_t<Gain>>(cfg.gain) << 11) |
                                                   (static_cast<std::underlying_type_t<IntegrationTime>>(cfg.it) << 6u) |
                                                   (static_cast<std::underlying_type_t<Persistence>>(cfg.pers) << 4u) |
                                                   (cfg.interruptEn << 1u) | cfg.powerOn);
-        writeReg(Reg::AlsConf0, conf);
-        if (cfg.powerOn) {
-            // TODO sleep for 2.5ms
+        if (const auto err = writeReg(Reg::AlsConf0, conf); err != ErrorType::NoError) {
+            return err;
         }
+        /* if (cfg.powerOn) {
+             // TODO sleep for 2.5ms
+         }*/
+        return ErrorType::NoError;
     }
 
-    ValueType fetch() const noexcept
-    {
-        const RegType val = readReg(Reg::Als);
-        return val;
-    }
+    std::expected<ValueType, ErrorType> fetch() const noexcept { return readReg(Reg::Als); }
 
   private:
     using RegType = std::uint16_t;
