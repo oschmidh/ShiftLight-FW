@@ -8,6 +8,9 @@
 template <typename I2C_T>
 class Veml7700 {
   public:
+    using ValueType = std::uint16_t;
+    using ErrorType = I2C_T::ErrorType;
+
     enum class Gain : std::uint8_t {
         Gain1 = 0b00,
         Gain2 = 0b01,
@@ -56,7 +59,7 @@ class Veml7700 {
         }
     }
 
-    std::uint16_t readAls(DevConfig cfg) const noexcept
+    ValueType fetch() const noexcept
     {
         const RegType val = readReg(Reg::Als);
         return val;
@@ -83,17 +86,20 @@ class Veml7700 {
     //     writeReg(reg, newVal);
     // }
 
-    void writeReg(Reg reg, RegType val) const noexcept
+    ErrorType writeReg(Reg reg, RegType val) const noexcept
     {
         const std::array<std::uint8_t, 3> buf{reg, static_cast<std::uint8_t>(val & 0xff),
                                               static_cast<std::uint8_t>((val >> 8u) & 0xff)};
-        _bus.write(_i2cAddr, buf);
+        return _bus.write(_i2cAddr, buf);
     }
 
-    RegType readReg(Reg reg) const noexcept
+    std::expected<RegType, ErrorType> readReg(Reg reg) const noexcept
     {
         std::array<std::uint8_t, sizeof(RegType)> buf;
-        _bus.transfer(_i2cAddr, std::span{reinterpret_cast<std::uint8_t*>(&reg), 1}, buf);
+        if (const auto err = _bus.transfer(_i2cAddr, std::span{reinterpret_cast<std::uint8_t*>(&reg), 1}, buf);
+            err != ErrorType::NoError) {
+            return std::unexpected(err);
+        }
         // return fromBigEndian(buf);
         return static_cast<RegType>(buf[0] >> 8u) | static_cast<RegType>(buf[1]);
     }
@@ -102,4 +108,4 @@ class Veml7700 {
     const I2C_T& _bus;
 };
 
-#endif
+#endif    // VEML7700_HPP
