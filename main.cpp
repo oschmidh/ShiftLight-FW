@@ -33,8 +33,8 @@ void startupAnimation(auto& leds) noexcept
     }
 }
 
-template<typename T>
-std::uint64_t System::GenericSteadyClock<T>::ticks;    // TODO move somewhere else?
+template <typename T>
+System::GenericSteadyClock<T>::time_point System::GenericSteadyClock<T>::elapsedTime;    // TODO move somewhere else?
 
 [[noreturn]] int main()
 {

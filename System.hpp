@@ -58,20 +58,20 @@ class CounterTimA {
 template <typename TIMER_T>
 class GenericSteadyClock {
   public:
-    using rep = TIMER_T::TickType;
+    using rep = std::uint64_t;
     using period = std::ratio<TIMER_T::presc, TIMER_T::clkFreq>;
     using duration = std::chrono::duration<rep, period>;
     using time_point = std::chrono::time_point<GenericSteadyClock>;
     static const bool is_steady = false;
 
-    static time_point now() noexcept { return time_point(duration(ticks + TIMER_T::getTicks())); }
+    static time_point now() noexcept { return elapsedTime + duration(TIMER_T::getTicks()); }
 
     static void init() noexcept { TIMER_T::init(); }
 
-    static constexpr void overflowIsr() { ticks += TIMER_T::period; }    // TODO should be private
+    static constexpr void overflowIsr() { elapsedTime += duration(TIMER_T::period); }    // TODO should be private
 
   private:
-    static std::uint64_t ticks;
+    static time_point elapsedTime;
 };
 
 using SteadyClock = GenericSteadyClock<CounterTimA>;
@@ -79,7 +79,7 @@ using SteadyClock = GenericSteadyClock<CounterTimA>;
 extern "C" void TIMA0_IRQHandler(void)    // TODO should be part of CounterTimA
 {
     switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
-        case DL_TIMERG_IIDX_OVERFLOW: SteadyClock::overflowIsr(); break;
+        case DL_TIMERG_IIDX_LOAD: SteadyClock::overflowIsr(); break;
         default: break;
     }
 }
