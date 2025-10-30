@@ -17,9 +17,9 @@ class TimerSteadyClock {
 
     static void init() noexcept { TIMER_T::init(&overflowIsr); }
 
-    static constexpr void overflowIsr() { elapsed += duration(TIMER_T::period); }    // TODO should be private
-
   private:
+    static constexpr void overflowIsr() { elapsed += duration(TIMER_T::period); }
+
     inline static time_point elapsed;
 };
 
