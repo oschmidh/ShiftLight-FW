@@ -1,5 +1,7 @@
 #include "ti_msp_dl_config.h"
 
+#include "Clock.hpp"
+
 #include <chrono>
 #include <limits>
 #include <cstdint>
@@ -55,26 +57,7 @@ class CounterTimA {
     // }
 };
 
-template <typename TIMER_T>
-class GenericSteadyClock {
-  public:
-    using rep = std::uint64_t;
-    using period = std::ratio<TIMER_T::presc, TIMER_T::clkFreq>;
-    using duration = std::chrono::duration<rep, period>;
-    using time_point = std::chrono::time_point<GenericSteadyClock>;
-    static const bool is_steady = false;
-
-    static time_point now() noexcept { return elapsedTime + duration(TIMER_T::getTicks()); }
-
-    static void init() noexcept { TIMER_T::init(); }
-
-    static constexpr void overflowIsr() { elapsedTime += duration(TIMER_T::period); }    // TODO should be private
-
-  private:
-    static time_point elapsedTime;
-};
-
-using SteadyClock = GenericSteadyClock<CounterTimA>;
+using SteadyClock = TimerSteadyClock<CounterTimA>;
 
 extern "C" void TIMA0_IRQHandler(void)    // TODO should be part of CounterTimA
 {

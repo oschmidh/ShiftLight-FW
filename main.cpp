@@ -19,22 +19,16 @@ void startupAnimation(auto& leds) noexcept
         leds.setLed(i, 0xff);
         leds.show();
         System::busyWait(80ms);
-        // delay_cycles(2000000);
     }
 
     System::busyWait(1250ms);
-    // delay_cycles(30000000);
 
     for (int i = numLeds - 1; i >= 0; --i) {
         leds.setLed(i, 0);
         leds.show();
         System::busyWait(80ms);
-        // delay_cycles(2000000);
     }
 }
-
-template <typename T>
-System::GenericSteadyClock<T>::time_point System::GenericSteadyClock<T>::elapsedTime;    // TODO move somewhere else?
 
 [[noreturn]] int main()
 {
