@@ -60,9 +60,8 @@ void startupAnimation(auto& leds) noexcept
     ledDriver.setGlobalBrightness(0x30);
 
     LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
-    ShiftLight shiftLight(sysTim, leds);
+    ShiftLight shiftLight(leds);
 
-    sysTim.enable();
     timG8.enable();
 
     startupAnimation(leds);

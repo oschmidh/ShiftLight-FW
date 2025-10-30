@@ -1,34 +1,26 @@
 #ifndef TIMER_HPP
 #define TIMER_HPP
 
+#include "System.hpp"
+
 #include <chrono>
 #include <cstdint>
 
-template <typename SYS_TIM_T>
 class Timer {
   public:
     template <typename REP_T, typename PERIOD_T>
-    Timer(const SYS_TIM_T& sysTim, std::chrono::duration<REP_T, PERIOD_T> period) noexcept
-     : Timer(sysTim, SYS_TIM_T::toTicks(period))
-    { }
-
-    Timer(const SYS_TIM_T& sysTim, SYS_TIM_T::TickType period) noexcept
-     : _start(now())
-     , _period(period)
-     , _sysTim(sysTim)
+    Timer(std::chrono::duration<REP_T, PERIOD_T> period) noexcept
+     : _start(System::SteadyClock::now())
+     , _period(std::chrono::duration_cast<System::SteadyClock::duration>(period))
     { }
 
     bool isElapsed() const noexcept
     {
-        const auto current = now();
-        if (_start > current) {    // handle overflow
-            return current + _sysTim.getPeriod() - _start >= _period;
-        }
-
+        const auto current = System::SteadyClock::now();
         return current - _start >= _period;
     }
 
-    void reload() noexcept { _start = now(); }
+    void reload() noexcept { _start = System::SteadyClock::now(); }
 
     void poll(auto&& action) noexcept    // TODO find proper name
     {
@@ -40,11 +32,8 @@ class Timer {
     }
 
   private:
-    SYS_TIM_T::TickType now() const noexcept { return _sysTim.getTicks(); }    // TODO infer return type?
-
-    SYS_TIM_T::TickType _start;
-    const SYS_TIM_T::TickType _period;
-    const SYS_TIM_T& _sysTim;
+    System::SteadyClock::time_point _start;
+    const System::SteadyClock::duration _period;
 };
 
 #endif    // TIMER_HPP
