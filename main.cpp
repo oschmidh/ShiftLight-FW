@@ -3,6 +3,7 @@
 #include "Tlc59208f.hpp"
 #include "I2c.hpp"
 #include "CaptureTim.hpp"
+#include "System.hpp"
 
 #include "ti_msp_dl_config.h"
 
@@ -12,24 +13,28 @@ static constexpr unsigned int numLeds = 8;    // TODO define where?
 
 void startupAnimation(auto& leds) noexcept
 {
+    using namespace std::literals::chrono_literals;
+
     for (unsigned int i = 0; i < numLeds; ++i) {
         leds.setLed(i, 0xff);
         leds.show();
-        delay_cycles(2000000);
+        System::busyWait(80ms);
     }
 
-    delay_cycles(30000000);
+    System::busyWait(1250ms);
 
     for (int i = numLeds - 1; i >= 0; --i) {
         leds.setLed(i, 0);
         leds.show();
-        delay_cycles(2000000);
+        System::busyWait(80ms);
     }
 }
 
 [[noreturn]] int main()
 {
     SYSCFG_DL_init();
+
+    System::SteadyClock::init();
 
     CaptureTimG timG8;    // TODO rename variable?
     timG8.init();
