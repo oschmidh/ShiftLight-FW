@@ -1,7 +1,7 @@
 #ifndef SHIFTLIGHT_HPP
 #define SHIFTLIGHT_HPP
 
-#include "Timer.hpp"
+#include "PolledTimer.hpp"
 
 static constexpr unsigned int minRpm = 4300;    // TODO better name
 static constexpr unsigned int targetRpm = 5700;
@@ -22,7 +22,12 @@ class ShiftLight {
 
     constexpr void update(unsigned int rpm) noexcept
     {
-        setLeds(rpm);
+        if (rpm >= blinkRpm) {
+            _blinkTimer.poll([this]() noexcept { toggleLeds(); });
+        } else {
+            setLeds(rpm);
+        }
+
         _leds.show();
     }
 
@@ -35,22 +40,16 @@ class ShiftLight {
         return minRpm + stepSize * ledNo;                                          // TODO check
     }
 
-    constexpr void setLeds(unsigned int rpm) noexcept
+    constexpr void toggleLeds() noexcept
     {
-        if (rpm >= blinkRpm) {
-            if (!_blinkTimer.isElapsed()) {
-                return;
-            }
-
-            for (unsigned int i = 0; i < numLeds; ++i) {
-                _leds.setLed(i, _blinkState ? 0xff : 0);
-            }
-            _blinkState = !_blinkState;
-
-            _blinkTimer.reload();
-            return;
+        for (unsigned int i = 0; i < numLeds; ++i) {
+            _leds.setLed(i, _blinkState ? 0xff : 0);
         }
+        _blinkState = !_blinkState;
+    }
 
+    constexpr void setLeds(unsigned int rpm) noexcept    // TODO rename?
+    {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
             if (rpm < threshold(i)) {
@@ -66,7 +65,7 @@ class ShiftLight {
     }
 
     bool _blinkState{};
-    Timer _blinkTimer;
+    PolledTimer _blinkTimer;
     LED_T& _leds;
 };
 
