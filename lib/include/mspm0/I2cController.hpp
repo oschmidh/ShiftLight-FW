@@ -53,10 +53,10 @@ class I2cController {
             return ErrorType::InvalidParam;
         }
 
-        data = _i2c.fillTxFifo(data);
-
         while (!_i2c.getControllerStatus().idle())
             ;
+
+        data = _i2c.fillTxFifo(data);
 
         _i2c.setControllerTargetAddr(addr, I2c::Direction::Transmit);
         _i2c.configureControllerOperation({.burstrun = true,
@@ -74,6 +74,7 @@ class I2cController {
             ;
 
         if (_i2c.getControllerStatus().error()) {
+            DL_I2C_flushControllerTXFIFO(I2C0);
             return ErrorType::IoError;
         }
 
@@ -107,6 +108,8 @@ class I2cController {
         while (!readbuf.empty()) {
             while (_i2c.getControllerRxFifoStatus().getCount() == 0) {
                 if (_i2c.getControllerStatus().error()) {
+                    DL_I2C_flushControllerTXFIFO(I2C0);
+                    DL_I2C_flushControllerRXFIFO(I2C0);
                     return ErrorType::IoError;
                 }
             }
