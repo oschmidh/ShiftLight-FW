@@ -56,11 +56,11 @@ class I2c {    // TODO call i2cController?
             return ErrorType::InvalidParam;    // TODO return error
         }
 
-        const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
-        data = data.subspan(amount);    // TODO is it allowed if offset == size?
-
         while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
             ;
+
+        const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
+        data = data.subspan(amount);    // TODO is it allowed if offset == size?
 
         DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_TX, size);
 
@@ -75,6 +75,7 @@ class I2c {    // TODO call i2cController?
 
         /* Trap if there was an error */
         if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
+            DL_I2C_flushControllerTXFIFO(I2C0);
             return ErrorType::IoError;    // TODO return error code?
         }
 
@@ -103,6 +104,8 @@ class I2c {    // TODO call i2cController?
         for (auto& byte : readbuf) {
             while (DL_I2C_isControllerRXFIFOEmpty(I2C0)) {
                 if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
+                    DL_I2C_flushControllerTXFIFO(I2C0);
+                    DL_I2C_flushControllerRXFIFO(I2C0);
                     return ErrorType::IoError;    // TODO return error code?
                 }
             }
