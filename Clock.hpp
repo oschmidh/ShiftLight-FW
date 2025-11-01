@@ -13,14 +13,14 @@ class TimerSteadyClock {
     using time_point = std::chrono::time_point<TimerSteadyClock>;
     static const bool is_steady = true;
 
-    static time_point now() noexcept { return elapsed + duration(TIMER_T::getTicks()); }
+    static time_point now() noexcept { return time_point(duration(elapsedTicks + TIMER_T::getTicks())); }
 
     static void init() noexcept { TIMER_T::init(&overflowIsr); }
 
   private:
-    static constexpr void overflowIsr() { elapsed += duration(TIMER_T::period); }
+    static void overflowIsr() noexcept { elapsedTicks += TIMER_T::period; }
 
-    inline static time_point elapsed;
+    inline static volatile rep elapsedTicks{};
 };
 
 #endif    // CLOCK_HPP
