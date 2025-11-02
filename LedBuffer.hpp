@@ -3,18 +3,26 @@
 
 #include <optional>
 #include <cstdint>
+#include <limits>
 #include <array>
 
 template <typename DRIVER_T, unsigned int NUM_LEDS_V>
 class LedBuffer {
   public:
+    using BrightnessType = std::uint8_t;
+
     static constexpr unsigned int numLeds = NUM_LEDS_V;
 
     constexpr LedBuffer(DRIVER_T& ledDriver) noexcept
      : _driver(ledDriver)
     { }
 
-    constexpr void setLed(unsigned int idx, std::uint8_t brightness) noexcept
+    constexpr void setLed(unsigned int idx, bool on) noexcept
+    {
+        dimLed(idx, on ? std::numeric_limits<BrightnessType>::max() : 0);
+    }
+
+    constexpr void dimLed(unsigned int idx, BrightnessType brightness) noexcept
     {
         if (idx >= _ledBuf.size()) {
             return;
@@ -36,7 +44,7 @@ class LedBuffer {
     }
 
   private:
-    std::array<std::optional<std::uint8_t>, numLeds> _ledBuf{};
+    std::array<std::optional<BrightnessType>, numLeds> _ledBuf{};
     const DRIVER_T& _driver;
 };
 
