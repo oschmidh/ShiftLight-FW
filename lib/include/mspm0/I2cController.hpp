@@ -110,6 +110,7 @@ class I2cController {
                 if (_i2c.getControllerStatus().error()) {
                     DL_I2C_flushControllerTXFIFO(I2C0);
                     DL_I2C_flushControllerRXFIFO(I2C0);
+                    // DL_I2C_disableControllerReadOnTXEmpty(I2C0);
                     return ErrorType::IoError;
                 }
             }
@@ -117,6 +118,7 @@ class I2cController {
             readbuf = _i2c.readRxFifo(readbuf);
         }
 
+        // DL_I2C_disableControllerReadOnTXEmpty(I2C0);
         return ErrorType::NoError;
     }
 
