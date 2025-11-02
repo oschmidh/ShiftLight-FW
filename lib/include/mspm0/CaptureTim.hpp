@@ -1,6 +1,8 @@
 #ifndef LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 #define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 
+#include "Interrupt.hpp"
+
 // #include <ti/driverlib/driverlib.h>
 #include "ti_msp_dl_config.h"
 
@@ -48,6 +50,9 @@ class CaptureTimG {
         TIMG8->COUNTERREGS.CCCTL_01[1] &= ~GPTIMER_CCCTL_01_LCOND_MASK;
 
         DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
+
+        System::InterruptHandler::registerIsr(
+            TIMG8_INT_IRQn, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
 
         DL_TimerG_enableClock(TIMG8);
     }
