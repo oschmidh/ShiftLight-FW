@@ -106,6 +106,7 @@ class I2c {    // TODO call i2cController?
                 if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
                     DL_I2C_flushControllerTXFIFO(I2C0);
                     DL_I2C_flushControllerRXFIFO(I2C0);
+                    DL_I2C_disableControllerReadOnTXEmpty(I2C0);
                     return ErrorType::IoError;    // TODO return error code?
                 }
             }
@@ -113,6 +114,7 @@ class I2c {    // TODO call i2cController?
             byte = DL_I2C_receiveControllerData(I2C0);
         }
 
+        DL_I2C_disableControllerReadOnTXEmpty(I2C0);
         return ErrorType::NoError;
     }
 
