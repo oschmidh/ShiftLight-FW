@@ -16,7 +16,7 @@ template <typename LED_T>
 class ShiftLight {
   public:
     constexpr ShiftLight(LED_T& leds) noexcept
-     : _blinkTimer(100ms)
+     : _blinkTimer(80ms)
      , _leds(leds)
     { }
 
@@ -53,14 +53,14 @@ class ShiftLight {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
             if (rpm < threshold(i)) {
-                for (; i < numLeds; ++i) {
-                    _leds.setLed(i, 0);
-                }
-
-                return;
+                break;
             }
 
             _leds.setLed(i, 0xff);
+        }
+
+        for (; i < numLeds; ++i) {
+            _leds.setLed(i, 0);
         }
     }
 
