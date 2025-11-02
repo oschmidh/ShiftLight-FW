@@ -45,8 +45,8 @@ class AdaptiveDimming {
         _disp.setGlobalBrightness(_dayMode ? dayModeBrightness : nightModeBrightness);    // TODO change name?
     }
 
-    static constexpr std::uint8_t dayModeBrightness = 0xff;      // TODO make configurable?
-    static constexpr std::uint8_t nightModeBrightness = 0x1f;    // TODO make configurable?
+    static constexpr std::uint8_t dayModeBrightness = 0x60;      // TODO make configurable?
+    static constexpr std::uint8_t nightModeBrightness = 0x20;    // TODO make configurable?
 
     using BrightnessType = SENSOR_T::ValueType;
 
