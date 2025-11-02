@@ -22,9 +22,11 @@ class ShiftLight {
 
     constexpr void update(unsigned int rpm) noexcept
     {
-        if (rpm >= blinkRpm) {
+        if (rpm >= _overrevTh) {
+            _overrevTh = blinkRpm - hysteresis;
             _blinkTimer.poll([this]() noexcept { toggleLeds(); });
         } else {
+            _overrevTh = blinkRpm;
             setLeds(rpm);
         }
 
@@ -64,6 +66,9 @@ class ShiftLight {
         }
     }
 
+    static constexpr unsigned int hysteresis = 50;
+
+    unsigned int _overrevTh{blinkRpm};
     bool _blinkState{};
     PolledTimer _blinkTimer;
     LED_T& _leds;
