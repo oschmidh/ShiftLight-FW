@@ -37,13 +37,13 @@ class ShiftLight {
         for (; i < numLeds; ++i) {
             if (rpm < threshold(i)) {
                 for (; i < numLeds; ++i) {
-                    _leds.setLed(i, 0);
+                    _leds.setLed(i, false);
                 }
 
                 return;
             }
 
-            _leds.setLed(i, 0xff);
+            _leds.setLed(i, true);
         }
     }
 

@@ -16,7 +16,7 @@ void startupAnimation(auto& leds) noexcept
     using namespace std::literals::chrono_literals;
 
     for (unsigned int i = 0; i < numLeds; ++i) {
-        leds.setLed(i, 0xff);
+        leds.setLed(i, true);
         leds.show();
         System::busyWait(80ms);
     }
@@ -24,7 +24,7 @@ void startupAnimation(auto& leds) noexcept
     System::busyWait(1250ms);
 
     for (int i = numLeds - 1; i >= 0; --i) {
-        leds.setLed(i, 0);
+        leds.setLed(i, false);
         leds.show();
         System::busyWait(80ms);
     }
@@ -59,7 +59,15 @@ void startupAnimation(auto& leds) noexcept
 
     ledDriver.setGlobalBrightness(0x30);
 
-    LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
+    // correction values to account for the different brightness values and human perception
+    // clang-format off
+    static constexpr std::array<std::uint8_t, numLeds> brightnessTable = {
+                                                                           0xff, 0xff, 0xff, // green
+                                                                           0x26, 0x26, 0x26, // yellow
+                                                                           0x2e, 0x2e        // red
+                                                                         };
+    // clang-format on
+    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds);
 
     timG8.enable();
