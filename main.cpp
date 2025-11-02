@@ -57,6 +57,8 @@ void startupAnimation(auto& leds) noexcept
         Tlc59208f<I2c>::ChannelConfig{.channel = 6, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
         Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
 
+    ledDriver.setGlobalBrightness(0x30);
+
     LedBuffer<Tlc59208f<I2c>, numLeds> leds(ledDriver);
     ShiftLight shiftLight(leds);
 
