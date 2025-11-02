@@ -3,9 +3,26 @@
 
 #include <optional>
 #include <cstdint>
+#include <limits>
+#include <algorithm>
 #include <array>
 
-template <typename DRIVER_T, unsigned int NUM_LEDS_V>
+namespace detail {
+
+template <typename T, std::size_t N, T value>
+constexpr std::array<T, N> fillArray() noexcept
+{
+    std::array<T, N> arr{};
+    std::ranges::fill(arr);
+    return arr;
+};
+
+}    // namespace detail
+
+template <typename DRIVER_T, unsigned int NUM_LEDS_V,
+          std::array<typename DRIVER_T::BrightnessType, NUM_LEDS_V> BRIGHTNESS_LUT_V =
+              detail::fillArray<typename DRIVER_T::BrightnessType, NUM_LEDS_V>(
+                  std::numeric_limits<typename DRIVER_T::BrightnessType>::max())>
 class LedBuffer {
   public:
     static constexpr unsigned int numLeds = NUM_LEDS_V;
@@ -14,13 +31,13 @@ class LedBuffer {
      : _driver(ledDriver)
     { }
 
-    constexpr void setLed(unsigned int idx, std::uint8_t brightness) noexcept
+    constexpr void setLed(unsigned int idx, bool on) noexcept
     {
         if (idx >= _ledBuf.size()) {
             return;
         }
 
-        _ledBuf[idx] = brightness;
+        _ledBuf[idx] = on ? BRIGHTNESS_LUT_V[idx] : 0;
     }
 
     constexpr void show() noexcept
@@ -36,7 +53,7 @@ class LedBuffer {
     }
 
   private:
-    std::array<std::optional<std::uint8_t>, numLeds> _ledBuf{};
+    std::array<std::optional<typename DRIVER_T::BrightnessType>, numLeds> _ledBuf{};
     const DRIVER_T& _driver;
 };
 
