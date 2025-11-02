@@ -48,7 +48,7 @@ class ShiftLight {
         _blinkState = !_blinkState;
     }
 
-    constexpr void setLeds(unsigned int rpm) noexcept    // TODO rename?
+    constexpr void setLeds(unsigned int rpm) noexcept
     {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
