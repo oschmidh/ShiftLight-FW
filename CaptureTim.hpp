@@ -1,14 +1,13 @@
 #ifndef CAPTURETIM_HPP
 #define CAPTURETIM_HPP
 
+#include "Interrupt.hpp"
+
 // #include <ti/driverlib/driverlib.h>
 #include "ti_msp_dl_config.h"
 
 #include <chrono>
 #include <cstdint>
-
-// TODO integrate in class
-volatile bool gSynced;
 
 enum class CaptureTimError {
     NoError,
@@ -50,6 +49,8 @@ class CaptureTimG {
 
         DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
+        System::InterruptHandler::registerIsr(TIMG8_INT_IRQn, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
+
         DL_TimerG_enableClock(TIMG8);
     }
 
@@ -65,7 +66,7 @@ class CaptureTimG {
 
     std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
-        if (!gSynced) {
+        if (!_synced) {
             return std::unexpected(CaptureTimError::NotSynced);
         }
 
@@ -73,24 +74,25 @@ class CaptureTimG {
     }
 
   private:
-};
-
-extern "C" void TIMG8_IRQHandler(void)
-{
-    switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
-        case DL_TIMERG_IIDX_CC1_UP:
-            gSynced = true;
-            /* Manual reload is needed to workaround timer capture limitation */
-            DL_TimerG_setTimerCount(TIMG8, 0);
-            break;
-        case DL_TIMERG_IIDX_OVERFLOW:
-            /* If Timer reaches overflows then no PWM signal is detected and it
-             * requires re-synchronization
-             */
-            gSynced = false;
-            break;
-        default: break;
+    void isr() noexcept
+    {
+        switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
+            case DL_TIMERG_IIDX_CC1_UP:
+                _synced = true;
+                /* Manual reload is needed to workaround timer capture limitation */
+                DL_TimerG_setTimerCount(TIMG8, 0);
+                break;
+            case DL_TIMERG_IIDX_OVERFLOW:
+                /* If Timer reaches overflows then no PWM signal is detected and it
+                 * requires re-synchronization
+                 */
+                _synced = false;
+                break;
+            default: break;
+        }
     }
-}
+
+    volatile bool _synced{};
+};
 
 #endif
