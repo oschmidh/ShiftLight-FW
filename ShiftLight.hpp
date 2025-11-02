@@ -1,6 +1,8 @@
 #ifndef SHIFTLIGHT_HPP
 #define SHIFTLIGHT_HPP
 
+#include "PolledTimer.hpp"
+
 static constexpr unsigned int minRpm = 4300;    // TODO better name
 static constexpr unsigned int targetRpm = 5700;
 static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targetRpm + stepsize
@@ -8,16 +10,26 @@ static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targe
 static_assert(targetRpm > minRpm);
 static_assert(blinkRpm > targetRpm);
 
+using namespace std::literals::chrono_literals;
+
 template <typename LED_T>
 class ShiftLight {
   public:
     constexpr ShiftLight(LED_T& leds) noexcept
-     : _leds(leds)
+     : _blinkTimer(80ms)
+     , _leds(leds)
     { }
 
     constexpr void update(unsigned int rpm) noexcept
     {
-        setLeds(rpm);
+        if (rpm >= _overrevTh) {
+            _overrevTh = blinkRpm - hysteresis;
+            _blinkTimer.poll([this]() noexcept { toggleLeds(); });
+        } else {
+            _overrevTh = blinkRpm;
+            setLeds(rpm);
+        }
+
         _leds.show();
     }
 
@@ -30,24 +42,36 @@ class ShiftLight {
         return minRpm + stepSize * ledNo;                                          // TODO check
     }
 
+    constexpr void toggleLeds() noexcept
+    {
+        for (unsigned int i = 0; i < numLeds; ++i) {
+            _leds.setLed(i, _blinkState ? 0xff : 0);
+        }
+        _blinkState = !_blinkState;
+    }
+
     constexpr void setLeds(unsigned int rpm) noexcept
     {
-
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
             if (rpm < threshold(i)) {
-                for (; i < numLeds; ++i) {
-                    _leds.setLed(i, 0);
-                }
-
-                return;
+                break;
             }
 
             _leds.setLed(i, 0xff);
         }
+
+        for (; i < numLeds; ++i) {
+            _leds.setLed(i, 0);
+        }
     }
 
+    static constexpr unsigned int hysteresis = 50;
+
+    unsigned int _overrevTh{blinkRpm};
+    bool _blinkState{};
+    PolledTimer _blinkTimer;
     LED_T& _leds;
 };
 
-#endif
+#endif    // SHIFTLIGHT_HPP
