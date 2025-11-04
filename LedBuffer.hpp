@@ -20,12 +20,11 @@ constexpr std::array<T, N> fillArray() noexcept
 }    // namespace detail
 
 template <typename DRIVER_T, unsigned int NUM_LEDS_V,
-          std::array<std::uint8_t, NUM_LEDS_V> BRIGHTNESS_LUT_V =
-              detail::fillArray<std::uint8_t, NUM_LEDS_V>(std::numeric_limits<std::uint8_t>::max())>
+          std::array<typename DRIVER_T::BrightnessType, NUM_LEDS_V> BRIGHTNESS_LUT_V =
+              detail::fillArray<typename DRIVER_T::BrightnessType, NUM_LEDS_V>(
+                  std::numeric_limits<typename DRIVER_T::BrightnessType>::max())>
 class LedBuffer {
   public:
-    using BrightnessType = std::uint8_t;
-
     static constexpr unsigned int numLeds = NUM_LEDS_V;
 
     constexpr LedBuffer(DRIVER_T& ledDriver) noexcept
@@ -54,7 +53,7 @@ class LedBuffer {
     }
 
   private:
-    std::array<std::optional<BrightnessType>, numLeds> _ledBuf{};
+    std::array<std::optional<typename DRIVER_T::BrightnessType>, numLeds> _ledBuf{};
     const DRIVER_T& _driver;
 };
 

@@ -11,10 +11,11 @@ template <typename I2C_T>
 class Tlc59208f {
   public:
     using ErrorType = I2C_T::ErrorType;
+    using BrightnessType = std::uint8_t;
 
     struct ChannelBrightness {
         unsigned int channel;
-        std::uint8_t duty;
+        BrightnessType duty;
     };
 
     enum class DriverState {
@@ -67,7 +68,7 @@ class Tlc59208f {
         return writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
     }
 
-    ErrorType setGlobalBrightness(std::uint8_t duty) const noexcept { return writeReg(Reg::GrpPwm, duty); }
+    ErrorType setGlobalBrightness(BrightnessType duty) const noexcept { return writeReg(Reg::GrpPwm, duty); }
 
     /*void setBrightness(unsigned int channel, std::uint8_t duty) const noexcept{
         const auo reg = Reg::Pwm0 + std::min(channel,7);
