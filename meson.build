@@ -2,11 +2,17 @@ project(
     'shiftLight',
     'cpp',
     'c',
-    # default_options: ['c_std=c11', 'cpp_std=c++20'],
+    meson_version : '>= 1.4.0',
+    default_options: ['c_std=c11', 'cpp_std=c++23','b_lto=false',
+                             'b_asneeded=false', 
+                            #  'b_lundef=false',
+                            #  'warning_level=3'
+                             'warning_level=1'
+                             ]
 )
 
-c_args = [
-    # '--target=arm-none-eabi',
+common_comp_args = [
+     # '--target=arm-none-eabi',
     '-mcpu=cortex-m0plus',
     '-march=armv6-m',
     '-mthumb',
@@ -14,24 +20,32 @@ c_args = [
     '-fno-exceptions',
     '-D__MSPM0C1104__',
     # '-fsigned-char',
+    '-Og', # TODO define where?
     '-ffunction-sections',
     '-fdata-sections',
-    '-Wall',
-    '-Werror',
+    
     # '-ffreestanding',
     '-g', # TODO ??
     '-gdwarf-3', # TODO ??
     '-gstrict-dwarf', # TODO ??
-    '-Og', # TODO define where?
+    '-Wall',
+    '-Werror',
+
+    # '--specs=nano.specs',
     # '-v',
+]
+
+cpp_args = [
+   '-fno-rtti', '-fno-unwind-tables',    '-fno-threadsafe-statics', '-U_GLIBCXX_ASSERTIONS','-U_FILE_OFFSET_BITS',
 ]
 
 c_link_args = [
     # '--target=arm-none-eabi',
     # '-v',
-    # '-Tmspm0c1104.lds',
+    # '-Wl,-z undefs',
+    # '-Wl,-TW:/repos/ShiftLight/mspm0c1104.lds',#TODO get rid of abs path
     '-fno-exceptions',
-    '-fno-rtti',
+    # '-fno-rtti',
     '-fno-unwind-tables',
     '-D__MSPM0C1104__',
     '-Og',
@@ -52,8 +66,9 @@ c_link_args = [
     '-Wl,--gc-sections',
     '-march=armv6-m',
     '-mthumb',
-    '--specs=nosys.specs',
+    # '-fno-math-errno',
     # '--specs=nano.specs',
+    '--specs=nosys.specs',
     # '-LC:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/lib/gcc/m0p/mspm0c110x',
     # '-LC:/ti/mspm0_sdk_2_05_01_00/source',
     # '-L"C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp"', 
@@ -71,30 +86,38 @@ linkfiles = files('mspm0c1104.lds')
 # startupfile = files('startup_mspm0c110x_gcc.c')
 
 foreach linkfile : linkfiles
-    c_link_args += ['-Wl,-T,@0@/@1@'.format(meson.current_source_dir(), linkfile)]
+    c_link_args += ['-Wl,-T,'+linkfile.full_path()]
 endforeach
 
-# meson.get_compiler('c').find_library(
-#     'm',
-#     dirs: [
-#         'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
-#     ],
-# ),
+
 
 executable(
-    'shiftLight.out',
+    'shiftLight',
     ['main.cpp', 'ti_msp_dl_config.c', 'startup_mspm0c110x_gcc.c'],
-    c_args: [c_args, '-std=c11'],
-    cpp_args: [c_args, '-std=c++23', '-fno-rtti', '-fno-unwind-tables'],
+    name_suffix         : 'elf',
+    c_args: [common_comp_args],
+    cpp_args: [common_comp_args, cpp_args],
     link_args: [c_link_args],
     dependencies: [
-        meson.get_compiler('c').find_library('gcc'),
-        meson.get_compiler('c').find_library(
+        meson.get_compiler('c', native : false).find_library('gcc', dirs: [
+                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
+                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
+            ],),
+        meson.get_compiler('c', native : false).find_library(
+            # 'libc_nano',
             'libc',
             dirs: [
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
+                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
             ],
         ),
+        meson.get_compiler('c', native : false).find_library(
+        'libm',
+            dirs: [
+                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
+                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
+            ],
+    ),
     ],
     include_directories: [
         # TODO replace abs paths
