@@ -1,9 +1,14 @@
 [binaries]
 c = 'arm-none-eabi-gcc'
 cpp = 'arm-none-eabi-g++'
+ld = 'arm-none-eabi-ld'
 ar = 'arm-none-eabi-ar'
+objdump = 'arm-none-eabi-objdump'
+objcopy = 'arm-none-eabi-objcopy'
+size = 'arm-none-eabi-size'
 
-
+[properties]
+# somekey = 'somevalue'
 
 [host_machine]
 system = 'none'
