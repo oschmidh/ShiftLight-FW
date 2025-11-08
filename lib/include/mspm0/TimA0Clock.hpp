@@ -3,6 +3,8 @@
 
 #include "ti_msp_dl_config.h"
 
+#include "Interrupt.hpp"
+
 #include <limits>
 #include <cstdint>
 
@@ -37,6 +39,9 @@ class TimA0Clock {
             .counterVal = 0,
         };
         DL_TimerA_initTimerMode(TIMA0, &timerCfg);
+
+        System::InterruptHandler::registerIsr(TIMA0_INT_IRQn,
+                                              System::InterruptHandler::CallbackType::create<TimA0Clock::isr>());
 
         DL_TimerA_enableInterrupt(TIMA0, DL_TIMERA_INTERRUPT_LOAD_EVENT);
         DL_TimerA_enableClock(TIMA0);
