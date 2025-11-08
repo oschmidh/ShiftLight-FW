@@ -49,7 +49,8 @@ class CaptureTimG {
 
         DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
-        System::InterruptHandler::registerIsr(TIMG8_INT_IRQn, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
+        System::InterruptHandler::registerIsr(
+            TIMG8_INT_IRQn, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
 
         DL_TimerG_enableClock(TIMG8);
     }
@@ -95,4 +96,4 @@ class CaptureTimG {
     volatile bool _synced{};
 };
 
-#endif
+#endif    // CAPTURETIM_HPP

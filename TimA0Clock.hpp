@@ -3,6 +3,8 @@
 
 #include "ti_msp_dl_config.h"
 
+#include "Interrupt.hpp"
+
 #include <limits>
 #include <cstdint>
 
@@ -18,7 +20,7 @@ class TimA0Clock {
 
     static void init(IsrType isrCallback) noexcept
     {
-        isr = isrCallback;
+        isrCb = isrCallback;
 
         DL_TimerA_reset(TIMA0);
         DL_TimerA_enablePower(TIMA0);
@@ -36,6 +38,9 @@ class TimA0Clock {
         };
         DL_TimerA_initTimerMode(TIMA0, &timerCfg);
 
+        System::InterruptHandler::registerIsr(TIMA0_INT_IRQn,
+                                              System::InterruptHandler::CallbackType::create<TimA0Clock::isr>());
+
         DL_TimerA_enableInterrupt(TIMA0, DL_TIMERA_INTERRUPT_LOAD_EVENT);
         DL_TimerA_enableClock(TIMA0);
         DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
@@ -46,19 +51,20 @@ class TimA0Clock {
 
     static TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
-    inline static IsrType isr;    // TODO should be private?
-};
-
-extern "C" void TIMA0_IRQHandler(void)    // TODO should be part of TimA0Clock
-{
-    switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
-        case DL_TIMERG_IIDX_LOAD:
-            if (TimA0Clock::isr) {
-                TimA0Clock::isr();
-            }
-            break;
-        default: break;
+  private:
+    static void isr(void)
+    {
+        switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
+            case DL_TIMERG_IIDX_LOAD:
+                if (TimA0Clock::isrCb) {
+                    TimA0Clock::isrCb();
+                }
+                break;
+            default: break;
+        }
     }
-}
+
+    inline static IsrType isrCb;
+};
 
 #endif    // TIMA0CLOCK_HPP
