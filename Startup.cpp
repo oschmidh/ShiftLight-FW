@@ -68,7 +68,7 @@ static_assert(sizeof(std::array<FuncPtrType, 32>) == sizeof(FuncPtrType[32]));
 
 // };
 
-std::uint32_t stackTop{};
+//std::uint32_t stackTop{};
 
 extern uint32_t __data_load__;
 extern uint32_t __data_start__;
@@ -149,7 +149,7 @@ constexpr void resetHandler() noexcept
 }
 
 struct InterrupVectorTable {
-    std::uint32_t* stackPtr = &stackTop;
+    std::uint32_t* stackPtr = &__StackTop;
     std::array<void (*)(), 15> intVecTable{// TODO derive size
                                            resetHandler,   nmiHandler, hardfaultHandler, nullptr,       nullptr,
                                            nullptr,        nullptr,    nullptr,          nullptr,       nullptr,
