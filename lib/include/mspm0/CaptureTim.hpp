@@ -15,25 +15,31 @@ enum class CaptureTimError {
     NotSynced,
 };
 
+struct CaptureTimGConfig {
+    unsigned int IrqLine;
+};
+
+template <CaptureTimGConfig CFG_V>
 class CaptureTimG {
   public:
     using ErrorType = CaptureTimError;
     static constexpr auto intLine = std::integral_constant<unsigned int, TIMG8_INT_IRQn>{};
 
-    static constexpr unsigned int presc = 255;            // TODO hardcoded here
+    static constexpr unsigned int presc = 255;            // TODO correct?
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTimG() noexcept { }
+    constexpr CaptureTimG(uintptr_t addr) noexcept
+     : _pwrCtrl(addr)
+     , _clkCtrl(addr)
+     , _regs(new (reinterpret_cast<std::uint32_t*>(addr)) Registers)
+    { }
 
     void init() noexcept
     {
-        DL_TimerG_reset(TIMG8);
+        _pwrCtrl.reset();
+        _pwrCtrl.enable();
 
-        DL_TimerG_enablePower(TIMG8);
-
-        constexpr DL_TimerG_ClockConfig clkCfg{
-            .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
-        DL_TimerG_setClockConfig(TIMG8, &clkCfg);
+        _clkCtrl.setSource(regSet::ClockControl::ClockSource::BusClk);
 
         constexpr DL_TimerG_CaptureConfig captureCfg = {
             .captureMode = DL_TIMER_CAPTURE_MODE_PERIOD_CAPTURE_UP,
@@ -52,7 +58,7 @@ class CaptureTimG {
         DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
         System::InterruptHandler::registerIsr(
-            TIMG8_INT_IRQn, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
+            CFG_V.IrqLine, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
 
         DL_TimerG_enableClock(TIMG8);
     }
@@ -61,8 +67,9 @@ class CaptureTimG {
     {
         DL_TimerG_setCoreHaltBehavior(TIMG8, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
-        NVIC_EnableIRQ(TIMG8_INT_IRQn);
-        DL_TimerG_startCounter(TIMG8);
+        NVIC_EnableIRQ(CFG_V.IrqLine);
+        // start counter
+        _regs->CTRCTL |= 1;    // TODO magic number
     }
 
     using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
@@ -95,6 +102,29 @@ class CaptureTimG {
     }
 
   private:
+    struct Registers {
+        std::uint32_t FSUB_0;
+        std::uint32_t FSUB_1;
+        std::uint32_t spare[10];    // TODO ?
+        std::uint32_t FPUB_0;
+        std::uint32_t FPUB_1;
+        std::uint32_t spare[10];    // TODO ?
+        std::uint32_t PWREN;
+        std::uint32_t RSTCTL;
+        std::uint32_t spare[10];    // TODO ?
+        std::uint32_t STAT;
+        std::uint32_t spare[10];    // TODO ?
+        std::uint32_t CLKDIV;
+        std::uint32_t spare;    // TODO ?
+        std::uint32_t CLKSEL;
+        std::uint32_t spare[10];    // TODO ?
+        std::uint32_t LOAD;
+    };
+
+    regSet::PowerControl _pwrCtrl;
+    regSet::ClockControl _clkCtrl;
+    volatile Registers* const _regs;
+
     volatile bool _synced{};
 };
 
