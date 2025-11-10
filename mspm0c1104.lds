@@ -54,7 +54,6 @@ REGION_ALIAS("REGION_NOINIT", SRAM);
 REGION_ALIAS("REGION_DATA", SRAM);
 REGION_ALIAS("REGION_STACK", SRAM);
 REGION_ALIAS("REGION_HEAP", SRAM);
-REGION_ALIAS("REGION_TEXT_RAM", SRAM);
 REGION_ALIAS("REGION_ARM_EXIDX", FLASH);
 REGION_ALIAS("REGION_ARM_EXTAB", FLASH);
 
@@ -91,14 +90,6 @@ SECTIONS
         KEEP (*(.fini*))
         . = ALIGN(0x8);
     } > REGION_TEXT AT> REGION_TEXT
-
-    .ramfunc : {
-        __ramfunct_load__ = LOADADDR (.ramfunc);
-        __ramfunct_start__ = .;
-       *(.ramfunc)
-       . = ALIGN(0x8);
-       __ramfunct_end__ = .;
-    } > REGION_TEXT_RAM AT> REGION_TEXT
 
     .rodata : {
         *(.rodata)

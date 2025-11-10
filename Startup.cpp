@@ -36,11 +36,8 @@ constexpr void sysTickHandler() noexcept { }
 
 [[noreturn]] constexpr void resetHandler() noexcept
 {
-    // Copy  data segment initializers from flash to SRAM
+    // Copy data initializers from flash to SRAM
     std::copy_n(&__data_load__, __data_end__ - __data_start__, &__data_start__);
-
-    // Copy  ramfunct segment initializers from flash to SRAM
-    std::copy_n(&__ramfunct_load__, __ramfunct_end__ - __ramfunct_start__, &__ramfunct_start__);
 
     // zero bss section
     std::fill(&__bss_start__, &__bss_end__, 0);
