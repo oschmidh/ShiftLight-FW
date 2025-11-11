@@ -10,7 +10,7 @@
 namespace Devices {
 
 extern I2c i2c0;
-extern CaptureTimG timG8;
+extern mspm0::CaptureTim<{.irqLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> timG8;
 extern TimA0Clock timA0;
 
 }    // namespace Devices

@@ -2,36 +2,41 @@
 #define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 
 #include "Interrupt.hpp"
+#include "RegSet.hpp"
 
-// #include <ti/driverlib/driverlib.h>
 #include "ti_msp_dl_config.h"
 
 #include <chrono>
 #include <expected>
 #include <cstdint>
 
+namespace mspm0 {
+
 enum class CaptureTimError {
     NoError,
     NotSynced,
 };
 
-struct CaptureTimGConfig {
-    unsigned int IrqLine;
+struct CaptureTimConfig {
+    unsigned int irqLine;
+    unsigned int channel;
+    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
 };
 
-template <CaptureTimGConfig CFG_V>
-class CaptureTimG {
+template <CaptureTimConfig CFG_V>
+class CaptureTim {
   public:
     using ErrorType = CaptureTimError;
     static constexpr auto intLine = std::integral_constant<unsigned int, TIMG8_INT_IRQn>{};
 
-    static constexpr unsigned int presc = 255;            // TODO correct?
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTimG(uintptr_t addr) noexcept
+    constexpr CaptureTim(uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
-     , _regs(new (reinterpret_cast<std::uint32_t*>(addr)) Registers)
+     , _intCtrl(addr, detail::regSet::intRegOffset)
+     , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
+     , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
     { }
 
     void init() noexcept
@@ -39,40 +44,53 @@ class CaptureTimG {
         _pwrCtrl.reset();
         _pwrCtrl.enable();
 
-        _clkCtrl.setSource(regSet::ClockControl::ClockSource::BusClk);
+        _clkCtrl.setSource(detail::regSet::ClockControl::ClockSource::BusClk);
+        _commonRegs->CPS = CFG_V.prescaler;
 
-        constexpr DL_TimerG_CaptureConfig captureCfg = {
-            .captureMode = DL_TIMER_CAPTURE_MODE_PERIOD_CAPTURE_UP,
-            .period = 49151,    // TODO??
-            .startTimer = DL_TIMER_STOP,
-            .edgeCaptMode = DL_TIMER_CAPTURE_EDGE_DETECTION_MODE_FALLING,
-            .inputChan = DL_TIMER_INPUT_CHAN_1,
-            .inputInvMode = DL_TIMER_CC_INPUT_INV_NOINVERT,
-        };
+        _ctrRegs->LOAD = 0xffff;
+        // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
-        DL_TimerG_initCaptureMode(TIMG8, &captureCfg);
+        static constexpr std::uint32_t ctrctlmask =
+            (0x3 << 28u) | (0x3 << 4u) | (0x1 << 1u) | (0x7 << 13u) | (0x7 << 10u) | (0x7 << 7u);
+        _ctrRegs->CTRCTL &= ~ctrctlmask;
+        _ctrRegs->CTRCTL |= (0x2 << 28u) | (0x2 << 4u) | (0x1 << 1u) | (CFG_V.channel << 13u) | (CFG_V.channel << 10u) |
+                            (CFG_V.channel << 7u);    // set
+                                                      // CM
+        // to up,
+        // REPEAT
+        // to
+        // continue,
+        // CVAE
+        // to
+        // load
+        // 0, select channel for CZC, CAC, CLC
+
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
-        // Therefore the capture register would always contain the load value
-        TIMG8->COUNTERREGS.CCCTL_01[1] &= ~GPTIMER_CCCTL_01_LCOND_MASK;
+        // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
+        _ctrRegs->CCCTL[CFG_V.channel] |= 0x20000 | (GPTIMER_CCCTL_01_ACOND_TIMCLK << 4u) |
+                                          (GPTIMER_CCCTL_01_ZCOND_CC_TRIG_NO_EFFECT << 12u) |
+                                          (GPTIMER_CCCTL_01_LCOND_CC_TRIG_NO_EFFECT << 8u) | 2;    // set
+                                                                                                   // COC, capture
+                                                                                                   // falling edge
+        _commonRegs->CCPD &= ~(1 << CFG_V.channel);
 
-        DL_TimerG_enableInterrupt(TIMG8, DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
+        _intCtrl.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
         System::InterruptHandler::registerIsr(
-            CFG_V.IrqLine, System::InterruptHandler::CallbackType::create<CaptureTimG, &CaptureTimG::isr>(this));
+            CFG_V.irqLine, System::InterruptHandler::CallbackType::create<CaptureTim, &CaptureTim::isr>(this));
 
-        DL_TimerG_enableClock(TIMG8);
+        _commonRegs->CCLKCTL |= 1;
     }
 
     void enable() noexcept
     {
-        DL_TimerG_setCoreHaltBehavior(TIMG8, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
-
-        NVIC_EnableIRQ(CFG_V.IrqLine);
-        // start counter
-        _regs->CTRCTL |= 1;    // TODO magic number
+        // NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.irqLine));    // TODO remove cast
+        NVIC_EnableIRQ(TIMG8_INT_IRQn);    // TODO use line nr in CFG_V
+        // start counter:
+        _ctrRegs->CTRCTL |= 1;    // TODO magic number
     }
 
-    using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
+    using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(CFG_V.prescaler + 1), timClk>>;
 
     std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
@@ -80,16 +98,16 @@ class CaptureTimG {
             return std::unexpected(CaptureTimError::NotSynced);
         }
 
-        return PeriodType{DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX)};
+        return PeriodType{_ctrRegs->CC[CFG_V.channel]};
     }
 
     void isr() noexcept
     {
-        switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
+        switch (_intCtrl.getPending()) {
             case DL_TIMERG_IIDX_CC1_UP:
                 _synced = true;
-                /* Manual reload is needed to workaround timer capture limitation */
-                DL_TimerG_setTimerCount(TIMG8, 0);
+                _ctrRegs->CTR = 0;    // Manual reload, workaround for ERRATA TIMER_ERR_01
+                // _callback(PeriodType{_ctrRegs->CC[CFG_V.channel]}); // TODO implement
                 break;
             case DL_TIMERG_IIDX_OVERFLOW:
                 /* If Timer reaches overflows then no PWM signal is detected and it
@@ -102,30 +120,46 @@ class CaptureTimG {
     }
 
   private:
-    struct Registers {
-        std::uint32_t FSUB_0;
-        std::uint32_t FSUB_1;
-        std::uint32_t spare[10];    // TODO ?
-        std::uint32_t FPUB_0;
-        std::uint32_t FPUB_1;
-        std::uint32_t spare[10];    // TODO ?
-        std::uint32_t PWREN;
-        std::uint32_t RSTCTL;
-        std::uint32_t spare[10];    // TODO ?
-        std::uint32_t STAT;
-        std::uint32_t spare[10];    // TODO ?
-        std::uint32_t CLKDIV;
-        std::uint32_t spare;    // TODO ?
-        std::uint32_t CLKSEL;
-        std::uint32_t spare[10];    // TODO ?
-        std::uint32_t LOAD;
+    struct CommonRegisters {
+        std::uint32_t CCPD;
+        std::uint32_t ODIS;
+        std::uint32_t CCLKCTL;
+        std::uint32_t CPS;
+        std::uint32_t CPSV;
+        std::uint32_t CTTTRIGCTRL;
+        std::uint32_t reserved;
+        std::uint32_t CTTTRIG;
     };
 
-    regSet::PowerControl _pwrCtrl;
-    regSet::ClockControl _clkCtrl;
-    volatile Registers* const _regs;
+    struct CounterRegisters {
+        std::uint32_t CTR;
+        std::uint32_t CTRCTL;
+        std::uint32_t LOAD;
+        std::uint32_t reserved_0;
+        std::uint32_t CC[6];
+        std::uint32_t reserved_1[2];
+        std::uint32_t CCCTL[6];
+        std::uint32_t reserved_2[2];
+        std::uint32_t OCTL[4];
+        std::uint32_t reserved_3[4];
+        std::uint32_t CCACT[4];
+        std::uint32_t IFCTL[4];
+    };
+
+    detail::regSet::PowerControl _pwrCtrl;
+    detail::regSet::ClockControl _clkCtrl;
+    detail::regSet::InterruptControl _intCtrl;
+
+    static constexpr uintptr_t commonRegOffset = 0x1100;
+    static constexpr uintptr_t ctrRegOffset = 0x1800;
+
+    volatile CommonRegisters* const _commonRegs;
+    volatile CounterRegisters* const _ctrRegs;
 
     volatile bool _synced{};
+    // fn_ref _callback;    // TODO implement
 };
+
+}    // namespace mspm0
 
 #endif    // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
