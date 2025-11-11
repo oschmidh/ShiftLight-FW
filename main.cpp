@@ -36,7 +36,8 @@ void startupAnimation(auto& leds) noexcept
 
     System::SteadyClock::init();
 
-    CaptureTimG timG8;    // TODO rename variable?
+    static constexpr std::uintptr_t timG8Addr = 0x40090000;
+    mspm0::CaptureTim<{.irqLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> timG8(timG8Addr);
     timG8.init();
 
     I2c i2c0;
