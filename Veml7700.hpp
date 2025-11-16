@@ -1,8 +1,11 @@
 #ifndef VEML7700_HPP
 #define VEML7700_HPP
 
+#include "System.hpp"
+
 #include <span>
 #include <cstdint>
+#include <chrono>
 
 // TODO add thread-safe policy?
 template <typename I2C_T>
@@ -39,7 +42,7 @@ class Veml7700 {
         IntegrationTime it;
         Persistence pers;
         bool interruptEn = false;
-        bool powerOn = true;
+        bool shutdown = false;
     };
 
     constexpr Veml7700(const I2C_T& bus, std::uint8_t i2cAddr) noexcept
@@ -49,16 +52,22 @@ class Veml7700 {
 
     ErrorType configure(DevConfig cfg) const noexcept
     {
+        using namespace std::literals::chrono_literals;
+
         const RegType conf = static_cast<RegType>((static_cast<std::underlying_type_t<Gain>>(cfg.gain) << 11) |
                                                   (static_cast<std::underlying_type_t<IntegrationTime>>(cfg.it) << 6u) |
                                                   (static_cast<std::underlying_type_t<Persistence>>(cfg.pers) << 4u) |
-                                                  (cfg.interruptEn << 1u) | cfg.powerOn);
+                                                  (cfg.interruptEn << 1u) | cfg.shutdown);
         if (const auto err = writeReg(Reg::AlsConf0, conf); err != ErrorType::NoError) {
             return err;
         }
-        /* if (cfg.powerOn) {
-             // TODO sleep for 2.5ms
-         }*/
+        if (const auto err = writeReg(Reg::PowerSaving, 1); err != ErrorType::NoError) {    // TEST
+            return err;
+        }
+        if (!cfg.shutdown) {
+            System::busyWait(3ms);
+        }
+
         return ErrorType::NoError;
     }
 
@@ -100,7 +109,7 @@ class Veml7700 {
             return std::unexpected(err);
         }
         // return fromBigEndian(buf);
-        return static_cast<RegType>(buf[0] >> 8u) | static_cast<RegType>(buf[1]);
+        return static_cast<RegType>(buf[0]) | (static_cast<RegType>(buf[1]) << 8u);
     }
 
     const std::uint8_t _i2cAddr;

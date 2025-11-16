@@ -67,7 +67,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
                                 .it = Veml7700<I2c>::IntegrationTime::Int100ms,
                                 .pers = Veml7700<I2c>::Persistence::Pers4,
                                 .interruptEn = false,
-                                .powerOn = true});
+                                .shutdown = false});
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(Devices::i2c, ledDriverI2cAddr);
@@ -118,7 +118,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
         Devices::rpmCaptureTim.getPeriod().transform(updateLeds);
 
-        dimmingControl.update();    // TODO only call every x seconds
+        dimmingControl.run();
 
         asm volatile("wfe" ::: "memory");
     }
