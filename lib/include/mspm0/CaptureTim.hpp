@@ -2,9 +2,7 @@
 #define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 
 #include "Interrupt.hpp"
-#include "RegSet.hpp"
-
-#include "ti_msp_dl_config.h"
+#include "Timer.hpp"
 
 #include <chrono>
 #include <expected>
@@ -17,13 +15,7 @@ enum class CaptureTimError {
     NotSynced,
 };
 
-struct CaptureTimConfig {
-    unsigned int irqLine;
-    unsigned int channel;
-    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
-};
-
-template <CaptureTimConfig CFG_V>
+template <TimerConfig CFG_V>
 class CaptureTim {
   public:
     using ErrorType = CaptureTimError;
@@ -32,20 +24,12 @@ class CaptureTim {
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
     constexpr CaptureTim(uintptr_t addr) noexcept
-     : _pwrCtrl(addr)
-     , _clkCtrl(addr)
-     , _intCtrl(addr, detail::regSet::intRegOffset)
-     , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
-     , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
+     : tim(addr)
     { }
 
     void init() noexcept
     {
-        _pwrCtrl.reset();
-        _pwrCtrl.enable();
-
-        _clkCtrl.setSource(detail::regSet::ClockControl::ClockSource::BusClk);
-        _commonRegs->CPS = CFG_V.prescaler;
+        _tim.init();
 
         _ctrRegs->LOAD = 0xffff;
         // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
@@ -74,7 +58,7 @@ class CaptureTim {
                                                                                                    // falling edge
         _commonRegs->CCPD &= ~(1 << CFG_V.channel);
 
-        _intCtrl.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
+        _tim.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
         System::InterruptHandler::registerIsr(
             CFG_V.irqLine, System::InterruptHandler::CallbackType::create<CaptureTim, &CaptureTim::isr>(this));
@@ -86,8 +70,7 @@ class CaptureTim {
     {
         // NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.irqLine));    // TODO remove cast
         NVIC_EnableIRQ(TIMG8_INT_IRQn);    // TODO use line nr in CFG_V
-        // start counter:
-        _ctrRegs->CTRCTL |= 1;    // TODO magic number
+        _tim.start();
     }
 
     using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(CFG_V.prescaler + 1), timClk>>;
@@ -103,7 +86,7 @@ class CaptureTim {
 
     void isr() noexcept
     {
-        switch (_intCtrl.getPending()) {
+        switch (_tim.getPendingInterrupts()) {
             case DL_TIMERG_IIDX_CC1_UP:
                 _synced = true;
                 _ctrRegs->CTR = 0;    // Manual reload, workaround for ERRATA TIMER_ERR_01
@@ -119,45 +102,9 @@ class CaptureTim {
         }
     }
 
-  private:
-    struct CommonRegisters {
-        std::uint32_t CCPD;
-        std::uint32_t ODIS;
-        std::uint32_t CCLKCTL;
-        std::uint32_t CPS;
-        std::uint32_t CPSV;
-        std::uint32_t CTTTRIGCTRL;
-        std::uint32_t reserved;
-        std::uint32_t CTTTRIG;
-    };
-
-    struct CounterRegisters {
-        std::uint32_t CTR;
-        std::uint32_t CTRCTL;
-        std::uint32_t LOAD;
-        std::uint32_t reserved_0;
-        std::uint32_t CC[6];
-        std::uint32_t reserved_1[2];
-        std::uint32_t CCCTL[6];
-        std::uint32_t reserved_2[2];
-        std::uint32_t OCTL[4];
-        std::uint32_t reserved_3[4];
-        std::uint32_t CCACT[4];
-        std::uint32_t IFCTL[4];
-    };
-
-    detail::regSet::PowerControl _pwrCtrl;
-    detail::regSet::ClockControl _clkCtrl;
-    detail::regSet::InterruptControl _intCtrl;
-
-    static constexpr uintptr_t commonRegOffset = 0x1100;
-    static constexpr uintptr_t ctrRegOffset = 0x1800;
-
-    volatile CommonRegisters* const _commonRegs;
-    volatile CounterRegisters* const _ctrRegs;
+    Timer<CFG_V> _tim;
 
     volatile bool _synced{};
-    // fn_ref _callback;    // TODO implement
 };
 
 }    // namespace mspm0
