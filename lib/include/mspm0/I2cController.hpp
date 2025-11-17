@@ -87,6 +87,7 @@ class I2cController {
     // Write transaction, followed by a read transaction with restart in between
     ErrorType transfer(std::uint8_t addr, std::span<const std::byte> writebuf, std::span<std::byte> readbuf) noexcept
     {
+        // L_I2C_resetControllerTransfer(I2C0);    // TODO test
 
         static constexpr unsigned int txFifoSize = 8;    // TODO hardcoded here?
         if (writebuf.size() > txFifoSize) {
@@ -95,6 +96,8 @@ class I2cController {
 
         while (!_i2c.getControllerStatus().idle())
             ;
+
+        _i2c.fillTxFifo(writebuf);
 
         _i2c.setControllerTargetAddr(addr, I2c::Direction::Receive);
         _i2c.configureControllerOperation({.burstrun = true,
