@@ -80,7 +80,8 @@ void startupAnimation(auto& leds) noexcept
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds);
 
-    AdaptiveDimming dimmingControl(ambientLightSens, ledDriver);
+    DisplayWrapper disp(ledDriver);
+    AdaptiveDimming dimmingControl(ambientLightSens, disp);
     dimmingControl.init();
 
     timG8.enable();
