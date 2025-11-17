@@ -1,6 +1,7 @@
 #include "AdaptiveDimming.hpp"
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
+#include "DisplayWrapper.hpp"
 #include "Tlc59208f.hpp"
 #include "Veml7700.hpp"
 #include "I2c.hpp"
