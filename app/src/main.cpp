@@ -1,5 +1,6 @@
 #include "ShiftLight.hpp"
 #include "AdaptiveDimming.hpp"
+#include "DisplayWrapper.hpp"
 #include "LedBuffer.hpp"
 #include "Devices.hpp"
 #include "System.hpp"
