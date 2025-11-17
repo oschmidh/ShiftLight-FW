@@ -88,12 +88,15 @@ class I2c {    // TODO call i2cController?
     // Write transaction, followed by a read transaction with restart in between
     ErrorType transfer(std::uint8_t addr, std::span<const std::uint8_t> writebuf,
                        std::span<std::uint8_t> readbuf) const noexcept
-    {    // TODO should be std::byte instead of uint8?
+    {                                            // TODO should be std::byte instead of uint8?
+        DL_I2C_resetControllerTransfer(I2C0);    // TODO test
 
         static constexpr unsigned int txFifoSize = 8;    // TODO hardcoded here?
         if (writebuf.size() > txFifoSize) {
             return ErrorType::NoError;    // TODO not implemented
         }
+
+        DL_I2C_fillControllerTXFIFO(I2C0, writebuf.data(), writebuf.size());
 
         while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
             ;
