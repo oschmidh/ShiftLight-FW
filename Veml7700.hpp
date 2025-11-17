@@ -61,7 +61,7 @@ class Veml7700 {
         if (const auto err = writeReg(Reg::AlsConf0, conf); err != ErrorType::NoError) {
             return err;
         }
-        if (const auto err = writeReg(Reg::PowerSaving, 1); err != ErrorType::NoError) {    // TEST
+        if (const auto err = writeReg(Reg::PowerSaving, 1); err != ErrorType::NoError) {
             return err;
         }
         if (!cfg.shutdown) {
@@ -72,6 +72,7 @@ class Veml7700 {
     }
 
     std::expected<ValueType, ErrorType> fetch() const noexcept { return readReg(Reg::Als); }
+    std::expected<ValueType, ErrorType> readId() const noexcept { return readReg(Reg::Id); }
 
   private:
     using RegType = std::uint16_t;
@@ -109,7 +110,7 @@ class Veml7700 {
             return std::unexpected(err);
         }
         // return fromBigEndian(buf);
-        return static_cast<RegType>(buf[0]) | (static_cast<RegType>(buf[1]) << 8u);
+        return (static_cast<RegType>(buf[1]) << 8u) | static_cast<RegType>(buf[0]);
     }
 
     const std::uint8_t _i2cAddr;

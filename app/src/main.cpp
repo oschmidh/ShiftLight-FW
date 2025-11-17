@@ -100,7 +100,8 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     LedBuffer<Tlc59208f<mspm0::I2cController>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    AdaptiveDimming dimmingControl(ambientLightSens, ledDriver);
+    DisplayWrapper disp(ledDriver);
+    AdaptiveDimming dimmingControl(ambientLightSens, disp);
     dimmingControl.init();
 
     Devices::rpmCaptureTim.enable();
