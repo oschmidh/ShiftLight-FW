@@ -6,6 +6,7 @@ ar = 'arm-none-eabi-ar'
 objdump = 'arm-none-eabi-objdump'
 objcopy = 'arm-none-eabi-objcopy'
 size = 'arm-none-eabi-size'
+strip = 'arm-none-eabi-strip'
 
 [properties]
 c_cpp_common_args = [
