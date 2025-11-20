@@ -3,13 +3,22 @@ project(
     'cpp',
     'c',
     meson_version : '>= 1.4.0',
-    default_options: ['c_std=c11', 'cpp_std=c++23','b_lto=false',
+    default_options: ['c_std=c11', 'cpp_std=c++23',
+                            # 'b_lto=false',
                              'b_asneeded=false', 
                             #  'b_lundef=false',
                             #  'warning_level=3'
                              'warning_level=1'
                              ]
 )
+
+project_sources = []
+project_include_dirs= [
+ 'C:/ti/mspm0_sdk_2_05_01_00/source',
+ 'C:/ti/mspm0_sdk_2_05_01_00/source/third_party/CMSIS/Core/Include',
+#  'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/include',
+#  'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/include/newlib-nano',
+]
 
 common_comp_args = [
      # '--target=arm-none-eabi',
@@ -23,14 +32,12 @@ common_comp_args = [
     '-Og', # TODO define where?
     '-ffunction-sections',
     '-fdata-sections',
-    
     # '-ffreestanding',
     '-g', # TODO ??
     '-gdwarf-3', # TODO ??
     '-gstrict-dwarf', # TODO ??
     '-Wall',
     '-Werror',
-
     # '--specs=nano.specs',
     # '-v',
 ]
@@ -90,11 +97,12 @@ foreach linkfile : linkfiles
 endforeach
 
 
+subdir('src')
 
 executable(
     'shiftLight',
-    ['main.cpp', 'ti_msp_dl_config.c', 'startup_mspm0c110x_gcc.c'],
-    name_suffix         : 'elf',
+    main_source,
+    name_suffix : 'elf',
     c_args: [common_comp_args],
     cpp_args: [common_comp_args, cpp_args],
     link_args: [c_link_args],
@@ -117,13 +125,8 @@ executable(
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
             ],
-    ),
+        ),
+        lib_lib,
     ],
-    include_directories: [
-        # TODO replace abs paths
-        'C:/ti/mspm0_sdk_2_05_01_00/source',
-        'C:/ti/mspm0_sdk_2_05_01_00/source/third_party/CMSIS/Core/Include',
-        'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/include',
-        'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/include/newlib-nano',
-    ],
+    include_directories: project_include_dirs,
 )
