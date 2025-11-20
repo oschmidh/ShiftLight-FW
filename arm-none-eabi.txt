@@ -8,7 +8,53 @@ objcopy = 'arm-none-eabi-objcopy'
 size = 'arm-none-eabi-size'
 
 [properties]
-# somekey = 'somevalue'
+c_cpp_common_args = [
+     # '--target=arm-none-eabi',
+    '-mcpu=cortex-m0plus',
+    '-march=armv6-m',
+    '-mthumb',
+    '-mfloat-abi=soft',
+    '-fno-exceptions',
+    '-D__MSPM0C1104__',
+    # '-fsigned-char',
+    '-ffunction-sections',
+    '-fdata-sections',
+    # '-ffreestanding',
+    '-g', # TODO ??
+    '-gdwarf-3', # TODO ??
+    '-gstrict-dwarf', # TODO ??
+    # '-Wall',
+    # '-Werror',
+    # '--specs=nano.specs',
+    # '-v',
+    ]
+
+c_specific_args = []
+
+cpp_specific_args = [
+   '-U_GLIBCXX_ASSERTIONS',
+   '-U_FILE_OFFSET_BITS',
+    ]
+
+c_args = c_cpp_common_args + c_specific_args
+cpp_args = c_cpp_common_args + cpp_specific_args
+
+c_cpp_common_link_args = [
+    '-D__MSPM0C1104__',
+    '-Og',
+    '-ffunction-sections',
+    '-fdata-sections',
+    '-g',
+    '-gdwarf-3',
+    '-gstrict-dwarf',
+    '-mthumb',
+    '-mfloat-abi=soft',
+    '-march=armv6-m',
+    '--specs=nosys.specs',
+    ]
+
+c_link_args = c_cpp_common_link_args
+cpp_link_args =c_cpp_common_link_args
 
 [host_machine]
 system = 'none'
