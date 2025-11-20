@@ -9,24 +9,18 @@ size = 'arm-none-eabi-size'
 
 [properties]
 c_cpp_common_args = [
-     # '--target=arm-none-eabi',
     '-mcpu=cortex-m0plus',
     '-march=armv6-m',
     '-mthumb',
     '-mfloat-abi=soft',
     '-fno-exceptions',
     '-D__MSPM0C1104__',
-    # '-fsigned-char',
     '-ffunction-sections',
     '-fdata-sections',
     # '-ffreestanding',
     '-g', # TODO ??
     '-gdwarf-3', # TODO ??
     '-gstrict-dwarf', # TODO ??
-    # '-Wall',
-    # '-Werror',
-    # '--specs=nano.specs',
-    # '-v',
     ]
 
 c_specific_args = []
