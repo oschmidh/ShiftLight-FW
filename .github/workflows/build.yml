@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Install tools
+        working-directory: modules/EmbeddedProto
+        run: |
+          sudo apt update
+          sudo apt install -y curl meson
+          curl -L -O https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
+          sudo unxz arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz -d /usr/share
+          sudo ln -s /usr/share/gcc-arm-none-eabi-YOUR-VERSION/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc 
+          sudo ln -s /usr/share/gcc-arm-none-eabi-YOUR-VERSION/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
+          sudo ln -s /usr/share/gcc-arm-none-eabi-YOUR-VERSION/bin/arm-none-eabi-gdb /usr/bin/arm-none-eabi-gdb
+          sudo ln -s /usr/share/gcc-arm-none-eabi-YOUR-VERSION/bin/arm-none-eabi-size /usr/bin/arm-none-eabi-size
+          sudo ln -s /usr/share/gcc-arm-none-eabi-YOUR-VERSION/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy
+
+      - name: Setup meson
+        working-directory: app
+        run: |
+          meson setup --cross-file arm-none-eabi.exe build-rel
+
+      - name: Build firmware
+        working-directory: app
+        run: |
+          meson compile -C build-rel
+
+      - name: Archive MCU image
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShiftLight_binary
+          path: |
+            ./app/build-rel/shiftLight.elf
