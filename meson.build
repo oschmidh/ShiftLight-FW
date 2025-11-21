@@ -3,19 +3,21 @@ project(
     'cpp',
     'c',
     meson_version : '>= 1.4.0',
-    default_options: ['c_std=c11', 'cpp_std=c++23',
-                            # 'b_lto=false',
-                             'b_asneeded=false', 
-                            #  'b_lundef=false',
-                            #  'warning_level=3'
-                             'warning_level=1',
-                             'debug=true',
-                             'werror=true',
-                             ]
+    default_options: [
+        'c_std=c11', 
+        'cpp_std=c++23',
+        # 'b_lto=false',
+        'b_asneeded=false', 
+        # 'b_lundef=false',
+        # 'warning_level=3'
+        'warning_level=1',
+        'debug=true',
+        'werror=true',
+    ]
 )
 
 project_sources = []
-project_include_dirs= []
+project_include_dirs = []
 
 add_project_arguments(['-Og',], language: ['c', 'cpp'])
 add_project_arguments(['-fno-rtti', '-fno-unwind-tables', '-fno-threadsafe-statics',], language: 'cpp')
@@ -27,10 +29,12 @@ add_project_link_arguments([
     '-Wl,-Map=' + meson.project_name() + '.map',
     '-nostartfiles',
     '-nostdlib',
-    # # '-nodefaultlibs',
+    # '-nodefaultlibs',
     '-static',
     '-Wl,--gc-sections',
-], language: ['c', 'cpp'])
+    ], 
+    language: ['c', 'cpp']
+)
 
 
 linkfiles = files('mspm0c1104.lds')
@@ -47,7 +51,7 @@ ti_driverlib_dep = declare_dependency(
 subdir('src')
 
 executable(
-    'shiftLight',
+    meson.project_name(),
     project_sources,
     name_suffix : 'elf',
     dependencies: [
@@ -56,7 +60,6 @@ executable(
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
             ],),
         meson.get_compiler('c', native : false).find_library(
-            # 'libc_nano',
             'libc',
             dirs: [
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',

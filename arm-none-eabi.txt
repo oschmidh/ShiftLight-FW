@@ -31,9 +31,6 @@ cpp_specific_args = [
    '-U_FILE_OFFSET_BITS',
     ]
 
-c_args = c_cpp_common_args + c_specific_args
-cpp_args = c_cpp_common_args + cpp_specific_args
-
 c_cpp_common_link_args = [
     '-D__MSPM0C1104__',
     '-Og',
@@ -48,8 +45,13 @@ c_cpp_common_link_args = [
     '--specs=nosys.specs',
     ]
 
+c_args = c_cpp_common_args + c_specific_args
+cpp_args = c_cpp_common_args + cpp_specific_args
 c_link_args = c_cpp_common_link_args
-cpp_link_args =c_cpp_common_link_args
+cpp_link_args = c_cpp_common_link_args
+
+[built-in options]
+
 
 [host_machine]
 system = 'none'
