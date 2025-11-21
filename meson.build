@@ -60,6 +60,9 @@ if linker_script != ''
 )
 endif
 
+mp_units_proj = subproject('mp-units')
+mp_units_dep = mp_units_proj.get_variable('mp_units_dep')
+
 subdir('lib')
 subdir('app')
 subdir('test')
