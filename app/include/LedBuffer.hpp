@@ -54,7 +54,7 @@ class LedBuffer {
 
   private:
     std::array<std::optional<typename DRIVER_T::BrightnessType>, numLeds> _ledBuf{};
-    const DRIVER_T& _driver;
+    DRIVER_T& _driver;
 };
 
 #endif // APP_INCLUDE_LEDBUFFER_HPP

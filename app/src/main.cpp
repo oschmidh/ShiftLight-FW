@@ -44,7 +44,7 @@ void startupAnimation(auto& leds) noexcept
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(i2c0, ledDriverI2cAddr);
-    ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
+    ledDriver.configure({.sleep = false});
 
     // TODO kinda ugly api...
     ledDriver.configureChannels(
