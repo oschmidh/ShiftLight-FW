@@ -1,2 +1,3 @@
 meson setup --cross-file arm-none-eabi.txt build-rel
+
 meson compile -C build-rel
