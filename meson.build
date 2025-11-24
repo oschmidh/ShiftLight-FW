@@ -1,5 +1,5 @@
 project(
-    'shiftLight',
+    'shiftlight',
     'cpp',
     'c',
     meson_version : '>= 1.4.0',
@@ -55,7 +55,9 @@ executable(
     project_sources,
     name_suffix : 'elf',
     dependencies: [
-        meson.get_compiler('c', native : false).find_library('gcc', dirs: [
+        meson.get_compiler('c', native : false).find_library(
+            'gcc', 
+            dirs: [
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
             ],),
@@ -67,7 +69,7 @@ executable(
             ],
         ),
         meson.get_compiler('c', native : false).find_library(
-        'libm',
+            'libm',
             dirs: [
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
                 'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
