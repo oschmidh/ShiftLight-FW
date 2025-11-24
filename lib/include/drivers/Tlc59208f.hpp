@@ -15,7 +15,7 @@ struct Value {
     tmp::get_datatype_t<CONTENT_T> value;
 };
 
-template <typename ACCESS_POLICY_T, typename... CONTENT_Ts>
+template <typename ACCESS_POLICY_T, tmp::concepts::content... CONTENT_Ts>
 constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_Ts>... values) noexcept
 {    // TODO get return type from access policy
     using ContentList = tmp::content_list<CONTENT_Ts...>;
@@ -39,6 +39,13 @@ constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_Ts>... values) noexc
     [&accessor, &raw]<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) noexcept {
         (accessor.write(tmp::address_v<tmp::at_t<IDX_Vs, AddrList>>, raw[IDX_Vs]), ...);
     }(std::make_index_sequence<raw.size()>());
+}
+
+template <typename ACCESS_POLICY_T, tmp::concepts::content CONTENT_T>
+    requires(tmp::get_mask_v<CONTENT_T> == tmp::get_mask_v<tmp::get_register_t<CONTENT_T>>)
+constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_T> values) noexcept
+{    // TODO get return type from access policy
+    accessor.write(tmp::get_address_v<CONTENT_T>, values.value);
 }
 
 template <typename I2C_T>
@@ -67,14 +74,9 @@ class I2cWrapper {
 
 template <typename I2C_T>
 class Tlc59208f {
-    // TODO add correct resetval:
-    using Mode1R =
-        tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<std::uint8_t{0}>, tmp::datatype<std::uint8_t>>;
-    // TODO add correct resetval:
-    using Mode2R =
-        tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<std::uint8_t{0}>, tmp::datatype<std::uint8_t>>;
-    using GrpPwmR =
-        tmp::reg<tmp::address<std::uint8_t, 0xA>, tmp::reset_value<std::uint8_t{0}>, tmp::datatype<std::uint8_t>>;
+    using Mode1R = tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<0x11>, tmp::datatype<std::uint8_t>>;
+    using Mode2R = tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<0x03>, tmp::datatype<std::uint8_t>>;
+    using GrpPwmR = tmp::reg<tmp::address<std::uint8_t, 0xA>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
 
     using Sleep = tmp::content<Mode1R, tmp::offset<4>, tmp::width<1>>;
     using GroupDutyCycle = tmp::content<GrpPwmR>;
@@ -135,7 +137,12 @@ class Tlc59208f {
         return writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
     }
 
-    ErrorType setGlobalBrightness(BrightnessType duty) noexcept { return writeReg(Reg::GrpPwm, duty); }
+    ErrorType setGlobalBrightness(BrightnessType duty) noexcept
+    {
+        // return writeReg(Reg::GrpPwm, duty);
+        set(_bus, Value<GroupDutyCycle>{duty});
+        return {};
+    }
 
     /*void setBrightness(unsigned int channel, std::uint8_t duty) const noexcept{
         const auo reg = Reg::Pwm0 + std::min(channel,7);
