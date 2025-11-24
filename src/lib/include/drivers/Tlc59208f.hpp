@@ -74,12 +74,31 @@ class I2cWrapper {
 
 template <typename I2C_T>
 class Tlc59208f {
-    using Mode1R = tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<0x11>, tmp::datatype<std::uint8_t>>;
-    using Mode2R = tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<0x03>, tmp::datatype<std::uint8_t>>;
-    using GrpPwmR = tmp::reg<tmp::address<std::uint8_t, 0xA>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+  public:
+    enum class DriverState {
+        Off = 0,
+        FullyOn = 1,
+        IndividualCtrl = 2,
+        GroupCtrl = 3,
+    };
 
-    using Sleep = tmp::content<Mode1R, tmp::offset<4>, tmp::width<1>>;
-    using GroupDutyCycle = tmp::content<GrpPwmR>;
+  private:
+    using Mode1 = tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<0x11>, tmp::datatype<std::uint8_t>>;
+    using Mode2 = tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<0x03>, tmp::datatype<std::uint8_t>>;
+    using GrpPwm = tmp::reg<tmp::address<std::uint8_t, 0xA>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using LedOut0 = tmp::reg<tmp::address<std::uint8_t, 0xC>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using LedOut1 = tmp::reg<tmp::address<std::uint8_t, 0xD>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+
+    using Sleep = tmp::content<Mode1, tmp::offset<4>, tmp::width<1>>;
+    using GroupDutyCycle = tmp::content<GrpPwm>;
+    using Led0OutpState = tmp::content<LedOut0, tmp::offset<0>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led1OutpState = tmp::content<LedOut0, tmp::offset<2>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led2OutpState = tmp::content<LedOut0, tmp::offset<4>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led3OutpState = tmp::content<LedOut0, tmp::offset<6>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led4OutpState = tmp::content<LedOut1, tmp::offset<0>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led5OutpState = tmp::content<LedOut1, tmp::offset<2>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led6OutpState = tmp::content<LedOut1, tmp::offset<4>, tmp::width<2>, tmp::typelist<>, DriverState>;
+    using Led7OutpState = tmp::content<LedOut1, tmp::offset<6>, tmp::width<2>, tmp::typelist<>, DriverState>;
 
   public:
     using ErrorType = I2C_T::ErrorType;
@@ -88,13 +107,6 @@ class Tlc59208f {
     struct ChannelBrightness {
         unsigned int channel;
         BrightnessType duty;
-    };
-
-    enum class DriverState {
-        Off = 0,
-        FullyOn = 1,
-        IndividualCtrl = 2,
-        GroupCtrl = 3,
     };
 
     struct ChannelConfig {
@@ -164,8 +176,8 @@ class Tlc59208f {
     using RegType = std::uint8_t;
 
     enum Reg : std::uint8_t {
-        Mode1 = 0,
-        Mode2,
+        Mode1_ = 0,
+        Mode2_,
         Pwm0,
         Pwm1,
         Pwm2,
@@ -174,10 +186,10 @@ class Tlc59208f {
         Pwm5,
         Pwm6,
         Pwm7,
-        GrpPwm,
+        GrpPwm_,
         GrpFreq,
-        LedOut0,
-        LedOut1,
+        LedOut0_,
+        LedOut1_,
         SubAdr1,
         SubAdr2,
         SubAdr3,
