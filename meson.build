@@ -2,14 +2,12 @@ project(
     'shiftlight',
     'cpp',
     'c',
+    version: run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip(),
     meson_version : '>= 1.4.0',
     default_options: [
         'c_std=c11', 
         'cpp_std=c++23',
-        # 'b_lto=false',
-        'b_asneeded=false',
-        # 'b_lundef=false',
-        # 'warning_level=3'
+        'b_lto=true',
         'warning_level=1',
         'buildtype=minsize',
         'werror=true',
