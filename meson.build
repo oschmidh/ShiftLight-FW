@@ -78,5 +78,5 @@ executable(
         ti_driverlib_dep,
         lib_lib,
     ],
-    include_directories: project_include_dirs,
+    include_directories: project_include_dirs+include_directories('TemplateMetaProgramming/include'),
 )
