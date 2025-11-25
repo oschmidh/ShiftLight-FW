@@ -67,5 +67,7 @@ ti_driverlib_dep = declare_dependency(
     include_directories : include_directories(['mspm0-sdk/source/', 'mspm0-sdk/source/third_party/CMSIS/Core/Include']),
 )
 
+project_include_dirs += include_directories('TemplateMetaProgramming/include')
+
 subdir('lib')
 subdir('app')
