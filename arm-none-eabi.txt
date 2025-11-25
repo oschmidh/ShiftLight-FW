@@ -14,14 +14,7 @@ c_cpp_common_args = [
     '-march=armv6-m',
     '-mthumb',
     '-mfloat-abi=soft',
-    '-fno-exceptions',
     '-D__MSPM0C1104__',
-    '-ffunction-sections',
-    '-fdata-sections',
-    # '-ffreestanding',
-    '-g', # TODO ??
-    '-gdwarf-3', # TODO ??
-    '-gstrict-dwarf', # TODO ??
     ]
 
 c_specific_args = []
@@ -32,16 +25,10 @@ cpp_specific_args = [
     ]
 
 c_cpp_common_link_args = [
-    '-D__MSPM0C1104__',
-    '-Og',
-    '-ffunction-sections',
-    '-fdata-sections',
-    '-g',
-    '-gdwarf-3',
-    '-gstrict-dwarf',
     '-mthumb',
     '-mfloat-abi=soft',
     '-march=armv6-m',
+    '--specs=nano.specs',
     '--specs=nosys.specs',
     ]
 

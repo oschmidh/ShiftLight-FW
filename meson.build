@@ -7,11 +7,11 @@ project(
         'c_std=c11', 
         'cpp_std=c++23',
         # 'b_lto=false',
-        'b_asneeded=false', 
+        'b_asneeded=false',
         # 'b_lundef=false',
         # 'warning_level=3'
         'warning_level=1',
-        'debug=true',
+        'buildtype=minsize',
         'werror=true',
     ]
 )
@@ -19,23 +19,29 @@ project(
 project_sources = []
 project_include_dirs = []
 
-add_project_arguments(['-Og',], language: ['c', 'cpp'])
-add_project_arguments(['-fno-rtti', '-fno-unwind-tables', '-fno-threadsafe-statics',], language: 'cpp')
+add_project_arguments([
+        '-fno-exceptions',
+        '-ffunction-sections',
+        '-fdata-sections',
+        # '-g',
+        # '-gdwarf-3',
+        # '-gstrict-dwarf',
+    ], 
+    language: ['c', 'cpp']
+)
 
+add_project_arguments(['-fno-rtti', '-fno-unwind-tables', '-fno-threadsafe-statics',], language: 'cpp')
 
 add_project_link_arguments([
     '-fno-exceptions',
     '-fno-unwind-tables',
     '-Wl,-Map=' + meson.project_name() + '.map',
     '-nostartfiles',
-    '-nostdlib',
-    # '-nodefaultlibs',
     '-static',
     '-Wl,--gc-sections',
     ], 
     language: ['c', 'cpp']
 )
-
 
 linkfiles = files('mspm0c1104.lds')
 
@@ -55,26 +61,6 @@ executable(
     project_sources,
     name_suffix : 'elf',
     dependencies: [
-        meson.get_compiler('c', native : false).find_library(
-            'gcc', 
-            dirs: [
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
-            ],),
-        meson.get_compiler('c', native : false).find_library(
-            'libc',
-            dirs: [
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
-            ],
-        ),
-        meson.get_compiler('c', native : false).find_library(
-            'libm',
-            dirs: [
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/arm-none-eabi/lib/thumb/v6-m/nofp',
-                'C:/tools/Arm_GNU_Toolchain_arm-none-eabi/14.3 rel1/lib/gcc/arm-none-eabi/14.3.1/thumb/v6-m/nofp',
-            ],
-        ),
         ti_driverlib_dep,
         lib_lib,
     ],
