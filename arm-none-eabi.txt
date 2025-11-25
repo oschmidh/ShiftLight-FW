@@ -8,7 +8,7 @@ objcopy = 'arm-none-eabi-objcopy'
 size = 'arm-none-eabi-size'
 strip = 'arm-none-eabi-strip'
 
-[properties]
+[constants]
 c_cpp_common_args = [
     '-mcpu=cortex-m0plus',
     '-march=armv6-m',
@@ -32,13 +32,11 @@ c_cpp_common_link_args = [
     '--specs=nosys.specs',
     ]
 
+[built-in options]
 c_args = c_cpp_common_args + c_specific_args
 cpp_args = c_cpp_common_args + cpp_specific_args
 c_link_args = c_cpp_common_link_args
 cpp_link_args = c_cpp_common_link_args
-
-[built-in options]
-
 
 [host_machine]
 system = 'none'
