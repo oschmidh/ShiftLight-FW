@@ -12,18 +12,10 @@ app_link_args = [
 ]
 
 linker_script_flags = []
-linker_script_dep = []
-foreach entry : meson.get_external_property('linker_paths', [''])
-	if entry != ''
-		linker_script_flags += '-L' + meson.project_source_root() / entry
-	endif
-endforeach
 
-linker_script = meson.get_external_property('linker_script', '')
-
+linker_script =  meson.get_external_property('linker_script', '')
 if linker_script != ''
-	linker_script_flags += '-Wl,-T,' + linker_script
-	linker_script_dep += meson.project_source_root() / linker_script
+	linker_script_flags += '-Wl,-T,' + meson.project_source_root() / linker_script
 endif
 
 executable(
@@ -39,5 +31,4 @@ executable(
         app_link_args,
         linker_script_flags,
     ],
-    link_depends: linker_script_dep,
 )
