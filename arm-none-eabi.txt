@@ -32,6 +32,7 @@ c_cpp_common_link_args = [
     '--specs=nosys.specs',
     ]
 
+[properties]
 linker_paths = ['']
 linker_script = 'mspm0c1104.lds'
 

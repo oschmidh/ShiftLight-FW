@@ -15,15 +15,15 @@ linker_script_flags = []
 linker_script_dep = []
 foreach entry : meson.get_external_property('linker_paths', [''])
 	if entry != ''
-		linker_script_flags += '-L' + meson.source_root() / entry
+		linker_script_flags += '-L' + meson.project_source_root() / entry
 	endif
 endforeach
 
-linker_script = meson.get_external_property('linker_scripts', '')
+linker_script = meson.get_external_property('linker_script', '')
 
 if linker_script != ''
-	linker_script_flags += '-T' + linker_script
-	linker_script_dep += meson.source_root() / linker_script
+	linker_script_flags += '-Wl,-T,' + linker_script
+	linker_script_dep += meson.project_source_root() / linker_script
 endif
 
 executable(
