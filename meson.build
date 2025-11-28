@@ -41,12 +41,6 @@ add_project_link_arguments([
     language: ['c', 'cpp']
 )
 
-linkfiles = files('mspm0c1104.lds')
-
-foreach linkfile : linkfiles
-    add_project_link_arguments('-Wl,-T,' + linkfile.full_path(), language: ['c', 'cpp'])
-endforeach
-
 ti_driverlib_dep = declare_dependency(
     dependencies : meson.get_compiler('c', native : false).find_library('driverlib', dirs : [join_paths(meson.current_source_dir(), 'mspm0-sdk/source/ti/driverlib/lib/gcc/m0p/mspm0c110x/')]),
     include_directories : include_directories(['mspm0-sdk/source/', 'mspm0-sdk/source/third_party/CMSIS/Core/Include']),
@@ -54,13 +48,4 @@ ti_driverlib_dep = declare_dependency(
 
 subdir('src')
 
-executable(
-    meson.project_name(),
-    project_sources,
-    name_suffix : 'elf',
-    dependencies: [
-        ti_driverlib_dep,
-        lib_lib,
-    ],
-    include_directories: project_include_dirs,
-)
+subdir('test')

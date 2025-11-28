@@ -25,12 +25,15 @@ cpp_specific_args = [
     ]
 
 c_cpp_common_link_args = [
+    '-march=armv6-m',
     '-mthumb',
     '-mfloat-abi=soft',
-    '-march=armv6-m',
     '--specs=nano.specs',
     '--specs=nosys.specs',
     ]
+
+linker_paths = ['']
+linker_script = 'mspm0c1104.lds'
 
 [built-in options]
 c_args = c_cpp_common_args + c_specific_args

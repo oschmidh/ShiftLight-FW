@@ -1,2 +1,2 @@
-subdir('app')
 subdir('lib')
+subdir('app')
