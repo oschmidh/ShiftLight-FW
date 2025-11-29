@@ -5,8 +5,9 @@ project(
     version: run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip(),
     default_options: [
         'c_std=c11',
+        'build.c_std=c11',
         'cpp_std=c++23',
-        'b_lto=true',
+        'build.cpp_std=c++23',
         'warning_level=1',
         'buildtype=minsize',
         'werror=true',
@@ -60,7 +61,7 @@ if linker_script != ''
 endif
 
 ti_driverlib_dep = declare_dependency(
-    dependencies : meson.get_compiler('c', native : false).find_library(
+    dependencies : meson.get_compiler('c', native : true).find_library(
         'driverlib',
         dirs : [join_paths(meson.current_source_dir(), 'mspm0-sdk/source/ti/driverlib/lib/gcc/m0p/mspm0c110x/')]
     ),
@@ -69,3 +70,4 @@ ti_driverlib_dep = declare_dependency(
 
 subdir('lib')
 subdir('app')
+subdir('test')
