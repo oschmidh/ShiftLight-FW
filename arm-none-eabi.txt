@@ -9,38 +9,27 @@ size = 'arm-none-eabi-size'
 strip = 'arm-none-eabi-strip'
 
 [constants]
-c_cpp_common_args = [
+compile_args = [
     '-mcpu=cortex-m0plus',
-    '-march=armv6-m',
     '-mthumb',
     '-mfloat-abi=soft',
     '-D__MSPM0C1104__',
     ]
 
-c_specific_args = []
-
-cpp_specific_args = [
-   '-U_GLIBCXX_ASSERTIONS',
-   '-U_FILE_OFFSET_BITS',
-    ]
-
-c_cpp_common_link_args = [
-    '-march=armv6-m',
+link_args = [
+    '-mcpu=cortex-m0plus',
     '-mthumb',
     '-mfloat-abi=soft',
-    '--specs=nano.specs',
-    '--specs=nosys.specs',
     ]
 
 [properties]
-linker_paths = ['']
 linker_script = 'mspm0c1104.lds'
 
 [built-in options]
-c_args = c_cpp_common_args + c_specific_args
-cpp_args = c_cpp_common_args + cpp_specific_args
-c_link_args = c_cpp_common_link_args
-cpp_link_args = c_cpp_common_link_args
+c_args = compile_args
+cpp_args = compile_args
+c_link_args = link_args
+cpp_link_args = link_args
 
 [host_machine]
 system = 'none'

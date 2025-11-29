@@ -6,20 +6,8 @@ app_sources = files(
     'startup_mspm0c110x_gcc.c'
 )
 
-app_link_args = [
-    '-Wl,-Map=' + meson.project_name() + '.map',
-    '-nostartfiles',
-]
-
 project_include_dirs += app_include_dirs
 project_sources += app_sources
-
-linker_script_flags = []
-
-linker_script =  meson.get_external_property('linker_script', '')
-if linker_script != ''
-	linker_script_flags += '-Wl,-T,' + meson.project_source_root() / linker_script
-endif
 
 executable(
     meson.project_name(),
@@ -29,10 +17,6 @@ executable(
     dependencies: [
         ti_driverlib_dep,
         lib_lib,
-    ],
-    link_args: [
-        app_link_args,
-        linker_script_flags,
     ],
     native:false
 )
