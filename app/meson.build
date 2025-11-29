@@ -11,6 +11,9 @@ app_link_args = [
     '-nostartfiles',
 ]
 
+project_include_dirs += app_include_dirs
+project_sources += app_sources
+
 linker_script_flags = []
 
 linker_script =  meson.get_external_property('linker_script', '')
@@ -20,9 +23,9 @@ endif
 
 executable(
     meson.project_name(),
-    app_sources,
+    project_sources,
     name_suffix : 'elf',
-    include_directories: app_include_dirs,
+    include_directories: project_include_dirs,
     dependencies: [
         ti_driverlib_dep,
         lib_lib,
@@ -31,4 +34,5 @@ executable(
         app_link_args,
         linker_script_flags,
     ],
+    native:false
 )

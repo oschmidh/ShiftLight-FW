@@ -33,8 +33,6 @@ add_project_arguments(['-fno-rtti', '-fno-unwind-tables', '-fno-threadsafe-stati
 add_project_link_arguments([
     '-fno-exceptions',
     '-fno-unwind-tables',
-    '-Wl,-Map=' + meson.project_name() + '.map',
-    '-nostartfiles',
     '-static',
     '-Wl,--gc-sections',
     ], 
@@ -46,6 +44,6 @@ ti_driverlib_dep = declare_dependency(
     include_directories : include_directories(['mspm0-sdk/source/', 'mspm0-sdk/source/third_party/CMSIS/Core/Include']),
 )
 
-subdir('src')
-
-subdir('test')
+subdir('lib')
+subdir('app')
+# subdir('test')
