@@ -6,7 +6,6 @@ project(
     default_options: [
         'c_std=c11',
         'cpp_std=c++23',
-        'b_lto=true',
         'warning_level=1',
         'buildtype=minsize',
         'werror=true',
@@ -69,3 +68,4 @@ ti_driverlib_dep = declare_dependency(
 
 subdir('lib')
 subdir('app')
+subdir('test')
