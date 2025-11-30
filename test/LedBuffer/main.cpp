@@ -1,22 +1,20 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "LedBuffer.hpp"
 #include <doctest.h>
-#include <trompeloeil.hpp>
+#include <doctest/trompeloeil.hpp>
 
 struct ChannelBrightness {
-        unsigned int channel;
-        std::uint8_t duty;
-    };
+    unsigned int channel;
+    std::uint8_t duty;
+};
 
-    constexpr bool operator==(const ChannelBrightness& lhs, const ChannelBrightness& rhs) noexcept {
-        return lhs.channel == rhs.channel && lhs.duty == rhs.duty;
-    }
+constexpr bool operator==(const ChannelBrightness& lhs, const ChannelBrightness& rhs) noexcept {
+    return (lhs.channel == rhs.channel) && (lhs.duty == rhs.duty);
+}
 
 class MockLedDriver
 {
 public:
-    
-
   MAKE_CONST_MOCK(setBrightness, auto (ChannelBrightness) -> void);
 };
 
@@ -24,36 +22,71 @@ TEST_CASE("testing single channel LedBuffer") {
     MockLedDriver drv;
     LedBuffer<MockLedDriver, 1> leds(drv);
 
-    SUBCASE("setLed on"){
-        leds.setLed(0, 0xff);
-        leds.show();
+    static_assert(leds.numLeds == 1);
 
+    SUBCASE("setLed on"){
         REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
         .TIMES(1);         
+
+        leds.setLed(0, 0xff);
+        leds.show();
     }
 
-    // SUBCASE("setLed off"){
-    //     leds.setLed(0, 0);
-    //     leds.show();
+    SUBCASE("setLed off"){
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0}))  
+        .TIMES(1);   
 
-    //     REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0}))  
-    //     .TIMES(1);         
-    // } 
+        leds.setLed(0, 0);
+        leds.show();
+    }
 
     SUBCASE("no update without call to show"){
         leds.setLed(0, 0xff);
         leds.setLed(0, 0);
+    }
 
-        FORBID_CALL(drv, setBrightness(ANY(ChannelBrightness))); // TODO is already implicit?
-    } 
+    SUBCASE("no update without changes"){
+        leds.show();
+    }
 
-    // SUBCASE("duplicate settings not updated"){
-    //     leds.setLed(0, 0xff);
-    //     leds.show();
-    //     leds.setLed(0, 0xff);
-    //     leds.show();
+    SUBCASE("duplicate settings not updated"){
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
+        .TIMES(1);    
 
-    //     REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
-    //     .TIMES(1);         
-    // } 
+        leds.setLed(0, 0xff);
+        leds.show();
+        leds.setLed(0, 0xff);
+        leds.show();
+    }
+}
+
+TEST_CASE("testing multi channel LedBuffer") {
+    MockLedDriver drv;
+    LedBuffer<MockLedDriver, 4> leds(drv);
+
+    static_assert(leds.numLeds == 4);
+
+    SUBCASE("set all leds on"){
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
+        .TIMES(1);       
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 1, .duty = 0xff}))  
+        .TIMES(1); 
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 2, .duty = 0xff}))  
+        .TIMES(1); 
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 3, .duty = 0xff}))  
+        .TIMES(1);   
+
+        for (unsigned int i=0; i< leds.numLeds; ++i) {
+            leds.setLed(i, 0xff);
+        }
+        leds.show();
+    }
+
+    SUBCASE("only modified leds are updated"){
+        REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 2, .duty = 0xff}))  
+        .TIMES(1);    
+
+        leds.setLed(2, 0xff);
+        leds.show();
+    }
 }
