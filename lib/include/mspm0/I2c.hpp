@@ -1,5 +1,5 @@
-#ifndef I2C_HPP
-#define I2C_HPP
+#ifndef LIB_INCLUDE_MSPM0_I2C_HPP
+#define LIB_INCLUDE_MSPM0_I2C_HPP
 
 #include <ti/driverlib/dl_i2c.h>
 #include <ti/driverlib/driverlib.h>
@@ -109,4 +109,4 @@ class I2c {    // TODO call i2cController?
   private:
 };
 
-#endif
+#endif // LIB_INCLUDE_MSPM0_I2C_HPP

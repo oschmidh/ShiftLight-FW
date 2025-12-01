@@ -1,5 +1,5 @@
-#ifndef CAPTURETIM_HPP
-#define CAPTURETIM_HPP
+#ifndef LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
+#define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 
 // #include <ti/driverlib/driverlib.h>
 #include "ti_msp_dl_config.h"
@@ -93,4 +93,4 @@ extern "C" void TIMG8_IRQHandler(void)
     }
 }
 
-#endif
+#endif // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP

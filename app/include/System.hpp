@@ -1,8 +1,8 @@
-#ifndef SYSTEM_HPP
-#define SYSTEM_HPP
+#ifndef APP_INCLUDE_SYSTEM_HPP
+#define APP_INCLUDE_SYSTEM_HPP
 
-#include "TimA0Clock.hpp"
-#include "Clock.hpp"
+#include <mspm0/TimA0Clock.hpp>
+#include <Clock.hpp>
 
 #include <chrono>
 
@@ -20,4 +20,4 @@ static void busyWait(std::chrono::duration<REP_T, PERIOD_T> duration) noexcept
 
 }    // namespace System
 
-#endif    // SYSTEM_HPP
+#endif // APP_INCLUDE_SYSTEM_HPP

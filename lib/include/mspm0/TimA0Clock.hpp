@@ -1,5 +1,5 @@
-#ifndef TIMA0CLOCK_HPP
-#define TIMA0CLOCK_HPP
+#ifndef LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#define LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
 
 #include "ti_msp_dl_config.h"
 
@@ -61,4 +61,4 @@ extern "C" void TIMA0_IRQHandler(void)    // TODO should be part of TimA0Clock
     }
 }
 
-#endif    // TIMA0CLOCK_HPP
+#endif // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP

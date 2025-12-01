@@ -1,5 +1,5 @@
-#ifndef CLOCK_HPP
-#define CLOCK_HPP
+#ifndef LIB_INCLUDE_CLOCK_HPP
+#define LIB_INCLUDE_CLOCK_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -23,4 +23,4 @@ class TimerSteadyClock {
     inline static volatile rep elapsedTicks{};
 };
 
-#endif    // CLOCK_HPP
+#endif // LIB_INCLUDE_CLOCK_HPP
