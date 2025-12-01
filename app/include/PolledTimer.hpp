@@ -1,5 +1,5 @@
-#ifndef POLLEDTIMER_HPP
-#define POLLEDTIMER_HPP
+#ifndef APP_INCLUDE_POLLEDTIMER_HPP
+#define APP_INCLUDE_POLLEDTIMER_HPP
 
 #include "System.hpp"
 
@@ -36,4 +36,4 @@ class PolledTimer {
     const System::SteadyClock::duration _period;
 };
 
-#endif    // POLLEDTIMER_HPP
+#endif // APP_INCLUDE_POLLEDTIMER_HPP
