@@ -4,14 +4,36 @@
 #include <tmp/Registers.hpp>
 #include <tmp/RegisterOperations.hpp>
 
+// #include <mp>
+
 #include <algorithm>
 #include <expected>
 #include <span>
 #include <type_traits>
 #include <cstdint>
 
+namespace tmp {
+
+template <concepts::reg_list REGISTER_LIST, concepts::offset OFFSET = offset<0>,
+          concepts::width WIDTH = get_width_t<REGISTER>, concepts::attribute_list ATTRIBUTES = typelist<>,
+          concepts::datatype DATATYPE = datatype<width_to_uint_t<get_width_v<REGISTER_LIST>>>>
+struct content_array { };
+
+}    // namespace tmp
+
 template <typename CONTENT_T>
 struct Value {
+    tmp::get_datatype_t<CONTENT_T> value;
+};
+
+// template <typename CONTENT_T>
+// struct Value<mp::meta<CONTENT_T>> {
+//     tmp::get_datatype_t<CONTENT_T> value;
+// };
+
+template <typename... REGISTER_Ts, typename ATTRIBUTE_V>
+struct Value<tmp::content_array<tmp::register_list<REGISTER_Ts>, ATTRIBUTE_V>> {
+    unsigned int arrIdx;
     tmp::get_datatype_t<CONTENT_T> value;
 };
 
@@ -27,6 +49,7 @@ constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_Ts>... values) noexc
 
     // static constexpr auto addresses = tmp::address_array<AddrList>::value;
 
+    // TODO dont read regs that are fully covered by the contents to set, because they will be overwritten anyways
     [&accessor, &raw]<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) noexcept {
         (accessor.read(tmp::address_v<tmp::at_t<IDX_Vs, AddrList>>, raw[IDX_Vs]), ...);
     }(std::make_index_sequence<raw.size()>());
@@ -43,10 +66,17 @@ constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_Ts>... values) noexc
 
 template <typename ACCESS_POLICY_T, tmp::concepts::content CONTENT_T>
     requires(tmp::get_mask_v<CONTENT_T> == tmp::get_mask_v<tmp::get_register_t<CONTENT_T>>)
-constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_T> values) noexcept
+constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_T> value) noexcept
 {    // TODO get return type from access policy
-    accessor.write(tmp::get_address_v<CONTENT_T>, values.value);
+    accessor.write(tmp::get_address_v<CONTENT_T>, value.value);
 }
+
+// template <typename ACCESS_POLICY_T, tmp::concepts::content CONTENT_T>
+//     requires(tmp::get_mask_v<CONTENT_T> == tmp::get_mask_v<tmp::get_register_t<CONTENT_T>>)
+// constexpr void set(ACCESS_POLICY_T& accessor, Value<CONTENT_T> value) noexcept
+// {    // TODO get return type from access policy
+//     accessor.write(tmp::get_address_v<CONTENT_T>, value.value);
+// }
 
 template <typename I2C_T>
 class I2cWrapper {
@@ -72,6 +102,19 @@ class I2cWrapper {
     const I2C_T& _bus;
 };
 
+class MemMappedRegWrapper {
+  public:
+    constexpr void read(std::intptr_t addr, std::uint32_t& val) const noexcept
+    {
+        val = *reinterpret_cast<const std::uint32_t*>(addr);
+    }
+
+    constexpr void write(std::intptr_t addr, std::uint32_t val) noexcept
+    {
+        *reinterpret_cast<std::uint32_t*>(addr) = val;
+    }
+};
+
 template <typename I2C_T>
 class Tlc59208f {
   public:
@@ -83,8 +126,16 @@ class Tlc59208f {
     };
 
   private:
-    using Mode1 = tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<0x11>, tmp::datatype<std::uint8_t>>;
-    using Mode2 = tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<0x03>, tmp::datatype<std::uint8_t>>;
+    using Mode1 = tmp::reg<tmp::address<std::uint8_t, 0x0>, tmp::reset_value<0x11>, tmp::datatype<std::uint8_t>>;
+    using Mode2 = tmp::reg<tmp::address<std::uint8_t, 0x1>, tmp::reset_value<0x03>, tmp::datatype<std::uint8_t>>;
+    using Pwm0 = tmp::reg<tmp::address<std::uint8_t, 0x2>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm1 = tmp::reg<tmp::address<std::uint8_t, 0x3>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm2 = tmp::reg<tmp::address<std::uint8_t, 0x4>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm3 = tmp::reg<tmp::address<std::uint8_t, 0x5>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm4 = tmp::reg<tmp::address<std::uint8_t, 0x6>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm5 = tmp::reg<tmp::address<std::uint8_t, 0x7>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm6 = tmp::reg<tmp::address<std::uint8_t, 0x8>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
+    using Pwm7 = tmp::reg<tmp::address<std::uint8_t, 0x9>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
     using GrpPwm = tmp::reg<tmp::address<std::uint8_t, 0xA>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
     using LedOut0 = tmp::reg<tmp::address<std::uint8_t, 0xC>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
     using LedOut1 = tmp::reg<tmp::address<std::uint8_t, 0xD>, tmp::reset_value<0>, tmp::datatype<std::uint8_t>>;
@@ -99,6 +150,16 @@ class Tlc59208f {
     using Led5OutpState = tmp::content<LedOut1, tmp::offset<2>, tmp::width<2>, tmp::typelist<>, DriverState>;
     using Led6OutpState = tmp::content<LedOut1, tmp::offset<4>, tmp::width<2>, tmp::typelist<>, DriverState>;
     using Led7OutpState = tmp::content<LedOut1, tmp::offset<6>, tmp::width<2>, tmp::typelist<>, DriverState>;
+
+    // using Pwm = tmp::content_array<
+    //     tmp::content_list<tmp::content<Pwm0>, tmp::content<Pwm1>, tmp::content<Pwm2>, tmp::content<Pwm3>,
+    //                       tmp::content<Pwm4>, tmp::content<Pwm5>, tmp::content<Pwm6>, tmp::content<Pwm7>>,
+    //     tmp::typelist<>>;
+
+    using Pwm = tmp::content_array<tmp::register_list<Pwm0, Pwm1, Pwm2, Pwm3, Pwm4, Pwm5, Pwm6, Pwm7>, tmp::typelist<>>;
+
+    // static constexpr std::array Pwm{mp::meta<Pwm0>, mp::meta<Pwm1>, mp::meta<Pwm2>, mp::meta<Pwm3>,
+    //                                 mp::meta<Pwm4>, mp::meta<Pwm5>, mp::meta<Pwm6>, mp::meta<Pwm7>};
 
   public:
     using ErrorType = I2C_T::ErrorType;
@@ -163,7 +224,13 @@ class Tlc59208f {
 
     ErrorType setBrightness(ChannelBrightness b) noexcept
     {
-        const auto reg = static_cast<Reg>(Reg::Pwm0 + std::min(b.channel, 7u));    // TODO magic num
+        // const auto reg = static_cast<Reg>(Reg::Pwm0 + std::min(b.channel, 7u));    // TODO magic num
+        if (b.channel >= 8) {    // TODO magic num
+            return;
+        }
+
+        set(Pwm{b.channel, b.duty});
+        // set(_bus, Value<Pwm[b.channe]>{b.duty});
         return writeReg(reg, b.duty);
     }
 
