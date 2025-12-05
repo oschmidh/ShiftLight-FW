@@ -1,4 +1,6 @@
-# ShiftLight FW
+# ShiftLight Firmware
+
+image::https://github.com/oschmidh/ShiftLight-FW/actions/workflows/build.yml/badge.svg?branch=main[]
 
 ## Setup
 
