@@ -33,7 +33,7 @@ jobs:
       - name: Setup meson
         # working-directory: app
         run: |
-          meson setup --cross-file arm-none-eabi.exe build
+          meson setup --cross-file arm-none-eabi.txt build
 
       - name: Build firmware
         # working-directory: app
