@@ -1,5 +1,5 @@
-#ifndef SHIFTLIGHT_HPP
-#define SHIFTLIGHT_HPP
+#ifndef APP_INCLUDE_SHIFTLIGHT_HPP
+#define APP_INCLUDE_SHIFTLIGHT_HPP
 
 #include "PolledTimer.hpp"
 
@@ -74,4 +74,4 @@ class ShiftLight {
     LED_T& _leds;
 };
 
-#endif    // SHIFTLIGHT_HPP
+#endif // APP_INCLUDE_SHIFTLIGHT_HPP

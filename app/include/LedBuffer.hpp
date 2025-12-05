@@ -1,5 +1,5 @@
-#ifndef LEDBUFFER_HPP
-#define LEDBUFFER_HPP
+#ifndef APP_INCLUDE_LEDBUFFER_HPP
+#define APP_INCLUDE_LEDBUFFER_HPP
 
 #include <optional>
 #include <cstdint>
@@ -57,4 +57,4 @@ class LedBuffer {
     const DRIVER_T& _driver;
 };
 
-#endif
+#endif // APP_INCLUDE_LEDBUFFER_HPP

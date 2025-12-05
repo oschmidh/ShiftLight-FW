@@ -1,0 +1,38 @@
+[binaries]
+c = 'arm-none-eabi-gcc'
+cpp = 'arm-none-eabi-g++'
+ld = 'arm-none-eabi-ld'
+ar = 'arm-none-eabi-ar'
+objdump = 'arm-none-eabi-objdump'
+objcopy = 'arm-none-eabi-objcopy'
+size = 'arm-none-eabi-size'
+strip = 'arm-none-eabi-strip'
+
+[constants]
+compile_args = [
+    '-mcpu=cortex-m0plus',
+    '-mthumb',
+    '-mfloat-abi=soft',
+    '-D__MSPM0C1104__',
+    ]
+
+link_args = [
+    '-mcpu=cortex-m0plus',
+    '-mthumb',
+    '-mfloat-abi=soft',
+    ]
+
+[properties]
+linker_script = 'mspm0c1104.lds'
+
+[built-in options]
+c_args = compile_args
+cpp_args = compile_args
+c_link_args = link_args
+cpp_link_args = link_args
+
+[host_machine]
+system = 'none'
+cpu_family = 'arm'
+cpu = 'cortex-m0+'
+endian = 'little'

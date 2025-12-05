@@ -1,5 +1,5 @@
-#ifndef TLC59208F_HPP
-#define TLC59208F_HPP
+#ifndef LIB_INCLUDE_DRIVERS_TLC59208F_HPP
+#define LIB_INCLUDE_DRIVERS_TLC59208F_HPP
 
 #include <algorithm>
 #include <expected>
@@ -147,4 +147,4 @@ class Tlc59208f {
     const I2C_T& _bus;
 };
 
-#endif
+#endif // LIB_INCLUDE_DRIVERS_TLC59208F_HPP

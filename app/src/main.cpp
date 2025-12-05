@@ -1,9 +1,9 @@
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
-#include "Tlc59208f.hpp"
-#include "I2c.hpp"
-#include "CaptureTim.hpp"
 #include "System.hpp"
+#include <drivers/Tlc59208f.hpp>
+#include <mspm0/I2c.hpp>
+#include <mspm0/CaptureTim.hpp>
 
 #include "ti_msp_dl_config.h"
 
