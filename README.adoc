@@ -1,3 +1,15 @@
-meson setup --cross-file arm-none-eabi.txt build
+# ShiftLight FW
 
+## Setup
+
+[source,console]
+----
+meson setup --cross-file arm-none-eabi.txt build
+----
+
+## Compile
+
+[source,console]
+----
 meson compile -C build
+----

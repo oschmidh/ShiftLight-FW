@@ -2,8 +2,7 @@ project(
     'shiftlight',
     'cpp',
     'c',
-    version: run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip(),
-    meson_version : '>= 1.4.0',
+    version: run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip(),
     default_options: [
         'c_std=c11',
         'cpp_std=c++23',
@@ -21,7 +20,7 @@ add_project_arguments([
         '-fno-exceptions',
         '-ffunction-sections',
         '-fdata-sections',
-    ], 
+    ],
     language: ['c', 'cpp'],
 )
 
@@ -45,7 +44,7 @@ add_project_link_arguments([
         '-nostartfiles',
         '--specs=nano.specs',
         '--specs=nosys.specs',
-    ], 
+    ],
     language: ['c', 'cpp'],
     native: false
 )
@@ -61,7 +60,10 @@ if linker_script != ''
 endif
 
 ti_driverlib_dep = declare_dependency(
-    dependencies : meson.get_compiler('c', native : false).find_library('driverlib', dirs : [join_paths(meson.current_source_dir(), 'mspm0-sdk/source/ti/driverlib/lib/gcc/m0p/mspm0c110x/')]),
+    dependencies : meson.get_compiler('c', native : false).find_library(
+        'driverlib',
+        dirs : [join_paths(meson.current_source_dir(), 'mspm0-sdk/source/ti/driverlib/lib/gcc/m0p/mspm0c110x/')]
+    ),
     include_directories : include_directories(['mspm0-sdk/source/', 'mspm0-sdk/source/third_party/CMSIS/Core/Include']),
 )
 
