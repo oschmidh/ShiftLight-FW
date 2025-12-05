@@ -33,16 +33,16 @@ jobs:
       - name: Setup meson
         working-directory: app
         run: |
-          meson setup --cross-file arm-none-eabi.exe build-rel
+          meson setup --cross-file arm-none-eabi.exe build
 
       - name: Build firmware
         working-directory: app
         run: |
-          meson compile -C build-rel
+          meson compile -C build
 
       - name: Archive MCU image
         uses: actions/upload-artifact@v4
         with:
           name: ShiftLight_binary
           path: |
-            ./app/build-rel/shiftLight.elf
+            ./app/build/shiftLight.elf
