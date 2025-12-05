@@ -10,12 +10,10 @@ on:
 
 jobs:
   build_and_test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        # with:
-        #   path: app
 
       - name: Install tools
         run: |
@@ -34,12 +32,10 @@ jobs:
           sudo ln -s /usr/share/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump /usr/bin/arm-none-eabi-objdump
 
       - name: Setup meson
-        # working-directory: app
         run: |
           meson setup --cross-file arm-none-eabi.txt build
 
       - name: Build firmware
-        # working-directory: app
         run: |
           meson compile -C build
 
@@ -48,4 +44,4 @@ jobs:
         with:
           name: ShiftLight_binary
           path: |
-            ./app/build/shiftlight.elf
+            ./build/app/shiftlight.elf
