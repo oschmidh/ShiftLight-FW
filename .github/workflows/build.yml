@@ -18,7 +18,6 @@ jobs:
           path: app
 
       - name: Install tools
-        working-directory: modules/EmbeddedProto
         run: |
           sudo apt update
           sudo apt install -y curl meson
@@ -45,4 +44,4 @@ jobs:
         with:
           name: ShiftLight_binary
           path: |
-            ./app/build/shiftLight.elf
+            ./app/build/shiftlight.elf
