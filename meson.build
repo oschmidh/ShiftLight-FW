@@ -2,7 +2,7 @@ project(
     'shiftlight',
     'cpp',
     'c',
-    version: run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip(),
+    version: run_command('git', 'describe', '--tags', '--always', check: true).stdout().strip(),
     default_options: [
         'c_std=c11',
         'cpp_std=c++23',
@@ -12,6 +12,10 @@ project(
         'werror=true',
     ]
 )
+
+env = environment()
+env.set(meson.project_name().to_upper() + '_VERSION', meson.project_version())
+env.set('_VERSION', '12345')
 
 project_sources = []
 project_include_dirs = []
