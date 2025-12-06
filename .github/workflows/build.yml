@@ -19,8 +19,6 @@ jobs:
 
       - name: Install tools
         run: |
-          sudo apt update
-          sudo apt install -y curl
           curl -L -O https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
           sudo tar -xf arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz -C /usr/share
           sudo ln -s /usr/share/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc
