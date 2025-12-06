@@ -9,11 +9,11 @@
 
 namespace detail {
 
-template <typename T, std::size_t N, T value>
-constexpr std::array<T, N> fillArray() noexcept
+template <typename T, std::size_t N>
+constexpr std::array<T, N> fillArray(T value) noexcept
 {
     std::array<T, N> arr{};
-    std::ranges::fill(arr);
+    std::ranges::fill(arr, value);
     return arr;
 };
 
