@@ -15,3 +15,11 @@ meson setup --cross-file arm-none-eabi.txt build
 ----
 meson compile -C build
 ----
+
+## Test
+
+[source,console]
+----
+meson test -C build
+----
+

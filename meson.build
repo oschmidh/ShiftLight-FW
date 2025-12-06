@@ -5,7 +5,9 @@ project(
     version: run_command('git', 'rev-parse', '--short', 'HEAD', check: true).stdout().strip(),
     default_options: [
         'c_std=c11',
+        'build.c_std=c11',
         'cpp_std=c++23',
+        'build.cpp_std=c++23',
         'warning_level=1',
         'buildtype=minsize',
         'werror=true',

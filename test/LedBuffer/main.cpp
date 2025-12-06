@@ -14,8 +14,9 @@ constexpr bool operator==(const ChannelBrightness& lhs, const ChannelBrightness&
 
 class MockLedDriver
 {
-public:
-  MAKE_CONST_MOCK(setBrightness, auto (ChannelBrightness) -> void);
+  public:
+    using BrightnessType = std::uint8_t;
+    MAKE_CONST_MOCK(setBrightness, auto (ChannelBrightness) -> void);
 };
 
 TEST_CASE("testing single channel LedBuffer") {
@@ -28,7 +29,7 @@ TEST_CASE("testing single channel LedBuffer") {
         REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
         .TIMES(1);         
 
-        leds.setLed(0, 0xff);
+        leds.setLed(0, true);
         leds.show();
     }
 
@@ -36,13 +37,13 @@ TEST_CASE("testing single channel LedBuffer") {
         REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0}))  
         .TIMES(1);   
 
-        leds.setLed(0, 0);
+        leds.setLed(0, false);
         leds.show();
     }
 
     SUBCASE("no update without call to show"){
-        leds.setLed(0, 0xff);
-        leds.setLed(0, 0);
+        leds.setLed(0, true);
+        leds.setLed(0, false);
     }
 
     SUBCASE("no update without changes"){
@@ -53,9 +54,9 @@ TEST_CASE("testing single channel LedBuffer") {
         REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 0, .duty = 0xff}))  
         .TIMES(1);    
 
-        leds.setLed(0, 0xff);
+        leds.setLed(0, true);
         leds.show();
-        leds.setLed(0, 0xff);
+        leds.setLed(0, true);
         leds.show();
     }
 }
@@ -77,7 +78,7 @@ TEST_CASE("testing multi channel LedBuffer") {
         .TIMES(1);   
 
         for (unsigned int i=0; i< leds.numLeds; ++i) {
-            leds.setLed(i, 0xff);
+            leds.setLed(i, true);
         }
         leds.show();
     }
@@ -86,7 +87,9 @@ TEST_CASE("testing multi channel LedBuffer") {
         REQUIRE_CALL(drv, setBrightness(ChannelBrightness{.channel = 2, .duty = 0xff}))  
         .TIMES(1);    
 
-        leds.setLed(2, 0xff);
+        leds.setLed(2, true);
         leds.show();
     }
 }
+
+// TODO add tests for brightness lut
