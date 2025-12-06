@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
 #include "System.hpp"
@@ -68,7 +69,7 @@ void startupAnimation(auto& leds) noexcept
                                                                          };
     // clang-format on
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
-    ShiftLight shiftLight(leds);
+    ShiftLight<shiftLightCfg> shiftLight(leds);
 
     timG8.enable();
 

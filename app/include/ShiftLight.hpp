@@ -3,18 +3,20 @@
 
 #include "PolledTimer.hpp"
 
-static constexpr unsigned int minRpm = 4300;    // TODO better name
-static constexpr unsigned int targetRpm = 5700;
-static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targetRpm + stepsize
-
-static_assert(targetRpm > minRpm);
-static_assert(blinkRpm > targetRpm);
-
 using namespace std::literals::chrono_literals;
 
-template <typename LED_T>
+struct ShiftLightConfig {
+    unsigned int minRpm;    // TODO better name
+    unsigned int targetRpm;
+    unsigned int blinkRpm;   // TODO auto derive from targetRpm + stepsize
+};
+
+template <ShiftLightConfig CFG_V, typename LED_T>
 class ShiftLight {
   public:
+    static_assert(CFG_V.targetRpm > CFG_V.minRpm);
+    static_assert(CFG_V.blinkRpm > CFG_V.targetRpm);
+
     constexpr ShiftLight(LED_T& leds) noexcept
      : _blinkTimer(80ms)
      , _leds(leds)
@@ -23,10 +25,10 @@ class ShiftLight {
     constexpr void update(unsigned int rpm) noexcept
     {
         if (rpm >= _overrevTh) {
-            _overrevTh = blinkRpm - hysteresis;
+            _overrevTh = CFG_V.blinkRpm - hysteresis;
             _blinkTimer.poll([this]() noexcept { toggleLeds(); });
         } else {
-            _overrevTh = blinkRpm;
+            _overrevTh = CFG_V.blinkRpm;
             setLeds(rpm);
         }
 
@@ -38,8 +40,8 @@ class ShiftLight {
 
     static constexpr unsigned int threshold(unsigned int ledNo) noexcept
     {
-        constexpr unsigned int stepSize = (targetRpm - minRpm) / (numLeds - 1);    // TODO correct?
-        return minRpm + stepSize * ledNo;                                          // TODO check
+        constexpr unsigned int stepSize = (CFG_V.targetRpm - CFG_V.minRpm) / (numLeds - 1);    // TODO correct?
+        return CFG_V.minRpm + stepSize * ledNo;                                          // TODO check
     }
 
     constexpr void toggleLeds() noexcept
@@ -68,7 +70,7 @@ class ShiftLight {
 
     static constexpr unsigned int hysteresis = 50;
 
-    unsigned int _overrevTh{blinkRpm};
+    unsigned int _overrevTh{CFG_V.blinkRpm};
     bool _blinkState{};
     PolledTimer _blinkTimer;
     LED_T& _leds;
