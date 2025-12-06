@@ -69,7 +69,7 @@ void startupAnimation(auto& leds) noexcept
                                                                          };
     // clang-format on
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
-    ShiftLight<shiftLightCfg> shiftLight(leds);
+    ShiftLight shiftLight(leds, shiftLightCfg);
 
     timG8.enable();
 

@@ -5,19 +5,31 @@
 
 using namespace std::literals::chrono_literals;
 
-struct ShiftLightConfig {
-    unsigned int minRpm;    // TODO better name
-    unsigned int targetRpm;
-    unsigned int blinkRpm;   // TODO auto derive from targetRpm + stepsize
+template <unsigned int MIN_RPM_V, unsigned int TARGET_RPM_V, unsigned int BLINK_RPM_V>
+struct ShiftLightCfg {
+    static_assert(TARGET_RPM_V > MIN_RPM_V);
+    static_assert(BLINK_RPM_V > TARGET_RPM_V);
 };
 
-template <ShiftLightConfig CFG_V, typename LED_T>
-class ShiftLight {
-  public:
-    static_assert(CFG_V.targetRpm > CFG_V.minRpm);
-    static_assert(CFG_V.blinkRpm > CFG_V.targetRpm);
+struct ShiftLightCfgParams {
+    unsigned int minRpm;    // TODO better name
+    unsigned int targetRpm;
+    unsigned int blinkRpm;    // TODO auto derive from targetRpm + stepsize
+};
 
-    constexpr ShiftLight(LED_T& leds) noexcept
+template <ShiftLightCfgParams CFG_V>
+static constexpr auto makeShiftLightConfig() noexcept -> ShiftLightCfg<CFG_V.minRpm, CFG_V.targetRpm, CFG_V.blinkRpm>
+{
+    return {};
+}
+
+template <typename LED_T, typename CONFIG_T>
+class ShiftLight;
+
+template <typename LED_T, unsigned int MIN_RPM_V, unsigned int TARGET_RPM_V, unsigned int BLINK_RPM_V>
+class ShiftLight<LED_T, ShiftLightCfg<MIN_RPM_V, TARGET_RPM_V, BLINK_RPM_V>> {
+  public:
+    constexpr ShiftLight(LED_T& leds, const ShiftLightCfg<MIN_RPM_V, TARGET_RPM_V, BLINK_RPM_V>&) noexcept
      : _blinkTimer(80ms)
      , _leds(leds)
     { }
@@ -25,10 +37,10 @@ class ShiftLight {
     constexpr void update(unsigned int rpm) noexcept
     {
         if (rpm >= _overrevTh) {
-            _overrevTh = CFG_V.blinkRpm - hysteresis;
+            _overrevTh = BLINK_RPM_V - hysteresis;
             _blinkTimer.poll([this]() noexcept { toggleLeds(); });
         } else {
-            _overrevTh = CFG_V.blinkRpm;
+            _overrevTh = BLINK_RPM_V;
             setLeds(rpm);
         }
 
@@ -40,14 +52,14 @@ class ShiftLight {
 
     static constexpr unsigned int threshold(unsigned int ledNo) noexcept
     {
-        constexpr unsigned int stepSize = (CFG_V.targetRpm - CFG_V.minRpm) / (numLeds - 1);    // TODO correct?
-        return CFG_V.minRpm + stepSize * ledNo;                                          // TODO check
+        constexpr unsigned int stepSize = (TARGET_RPM_V - MIN_RPM_V) / (numLeds - 1);    // TODO correct?
+        return MIN_RPM_V + stepSize * ledNo;                                             // TODO check
     }
 
     constexpr void toggleLeds() noexcept
     {
         for (unsigned int i = 0; i < numLeds; ++i) {
-            _leds.setLed(i, _blinkState );
+            _leds.setLed(i, _blinkState);
         }
         _blinkState = !_blinkState;
     }
@@ -70,10 +82,14 @@ class ShiftLight {
 
     static constexpr unsigned int hysteresis = 50;
 
-    unsigned int _overrevTh{CFG_V.blinkRpm};
+    unsigned int _overrevTh{BLINK_RPM_V};
     bool _blinkState{};
     PolledTimer _blinkTimer;
     LED_T& _leds;
 };
 
-#endif // APP_INCLUDE_SHIFTLIGHT_HPP
+template <typename LED_T, unsigned int MIN_RPM_V, unsigned int TARGET_RPM_V, unsigned int BLINK_RPM_V>
+ShiftLight(LED_T&, const ShiftLightCfg<MIN_RPM_V, TARGET_RPM_V, BLINK_RPM_V>&)
+    -> ShiftLight<LED_T, ShiftLightCfg<MIN_RPM_V, TARGET_RPM_V, BLINK_RPM_V>>;
+
+#endif    // APP_INCLUDE_SHIFTLIGHT_HPP
