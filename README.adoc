@@ -15,3 +15,16 @@ meson setup --cross-file arm-none-eabi.txt build
 ----
 meson compile -C build
 ----
+
+## Debug
+
+[source,console]
+----
+pyocd pack install mspm0c1104
+----
+
+[source,console]
+----
+pyocd load -t mspm0c1104 -O reset_type=hw ./build/app/shiftlight.elf
+pyocd commander -t mspm0c1104 -c continue
+----
