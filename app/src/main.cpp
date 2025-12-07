@@ -1,7 +1,8 @@
-#include "Config.hpp"
+
 #include "ShiftLight.hpp"
 #include "LedBuffer.hpp"
 #include "System.hpp"
+#include "Config.hpp"
 #include <drivers/Tlc59208f.hpp>
 #include <mspm0/I2c.hpp>
 #include <mspm0/CaptureTim.hpp>
@@ -9,8 +10,6 @@
 #include "ti_msp_dl_config.h"
 
 #include <cstdint>
-
-static constexpr unsigned int numLeds = 8;    // TODO define where?
 
 void startupAnimation(auto& leds) noexcept
 {
@@ -62,13 +61,13 @@ void startupAnimation(auto& leds) noexcept
 
     // correction values to account for the different brightness values and human perception
     // clang-format off
-    static constexpr std::array<std::uint8_t, numLeds> brightnessTable = {
-                                                                           0xff, 0xff, 0xff, // green
-                                                                           0x26, 0x26, 0x26, // yellow
-                                                                           0x2e, 0x2e        // red
-                                                                         };
+    // static constexpr std::array<std::uint8_t, numLeds> brightnessTable = {
+    //                                                                        0xff, 0xff, 0xff, // green
+    //                                                                        0x26, 0x26, 0x26, // yellow
+    //                                                                        0x2e, 0x2e        // red
+    //                                                                      };
     // clang-format on
-    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
+    LedBuffer leds(ledDriver, LedBufCfg);
     ShiftLight shiftLight(leds, shiftLightCfg);
 
     timG8.enable();
