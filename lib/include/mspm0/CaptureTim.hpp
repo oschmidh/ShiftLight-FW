@@ -24,7 +24,7 @@ class CaptureTim {
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
     constexpr CaptureTim(uintptr_t addr) noexcept
-     : tim(addr)
+     : _tim(addr)
     { }
 
     void init() noexcept
