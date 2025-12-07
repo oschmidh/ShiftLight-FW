@@ -23,3 +23,15 @@ meson compile -C build
 meson test -C build
 ----
 
+## Debug
+
+[source,console]
+----
+pyocd pack install mspm0c1104
+----
+
+[source,console]
+----
+pyocd load -t mspm0c1104 -O reset_type=hw ./build/app/shiftlight.elf
+pyocd commander -t mspm0c1104 -c continue
+----
