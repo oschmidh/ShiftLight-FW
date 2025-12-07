@@ -2,5 +2,5 @@
 	path = mspm0-sdk
 	url = https://github.com/TexasInstruments/mspm0-sdk
 [submodule "TemplateMetaProgramming"]
-	path = TemplateMetaProgramming
+	path = subprojects/TemplateMetaProgramming
 	url = https://github.com/alexanderwachter/TemplateMetaProgramming.git
