@@ -58,4 +58,16 @@ TEST_CASE("")    // TODO add name
             }
         }
     }
+
+    SUBCASE("")    // TODO add name
+    {
+        for (unsigned int rpm = blinkRpm; rpm > 0; --rpm) {
+            shiftlight.update(rpm);
+            for (unsigned int i = 0; i < nLeds; ++i) {
+                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for ", rpm, "RPM");
+            }
+        }
+    }
 }
+
+// TODO add tests for overrev blinking
