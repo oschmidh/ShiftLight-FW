@@ -33,27 +33,38 @@ class LedBuffer {
 
     constexpr void setLed(unsigned int idx, bool on) noexcept
     {
-        if (idx >= _ledBuf.size()) {
-            return;
-        }
-
-        _ledBuf[idx] = on ? BRIGHTNESS_LUT_V[idx] : 0;
+        setLed(idx, on ? BRIGHTNESS_LUT_V[idx] : typename DRIVER_T::BrightnessType{});
     }
 
     constexpr void show() noexcept
     {
         for (unsigned int i = 0; i < _ledBuf.size(); ++i) {
-            if (!_ledBuf[i].has_value()) {
+            if (!_isDirty[i]) {
                 continue;
             }
 
-            _driver.setBrightness({.channel = i, .duty = _ledBuf[i].value()});
-            _ledBuf[i].reset();
+            _driver.setBrightness({.channel = i, .duty = _ledBuf[i]});
+            _isDirty[i] = false;
         }
     }
 
   private:
-    std::array<std::optional<typename DRIVER_T::BrightnessType>, numLeds> _ledBuf{};
+    constexpr void setLed(unsigned int idx, typename DRIVER_T::BrightnessType value) noexcept
+    {
+        if (idx >= _ledBuf.size()) {
+            return;
+        }
+
+        if (value == _ledBuf[idx]) {
+            return;
+        }
+
+        _ledBuf[idx] = value;
+        _isDirty[idx] = true;
+    }
+
+    std::array<typename DRIVER_T::BrightnessType, numLeds> _ledBuf{};
+    std::array<bool, numLeds> _isDirty = detail::fillArray<bool, numLeds>(true);
     const DRIVER_T& _driver;
 };
 
