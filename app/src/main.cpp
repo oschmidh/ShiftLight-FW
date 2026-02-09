@@ -34,7 +34,8 @@ void startupAnimation(auto& leds) noexcept
 {
     SYSCFG_DL_init();
 
-    System::SteadyClock::init();
+    System::SteadyClock sysTime{};
+    sysTime.init();
 
     CaptureTimG timG8;    // TODO rename variable?
     timG8.init();
@@ -68,7 +69,7 @@ void startupAnimation(auto& leds) noexcept
                                                                          };
     // clang-format on
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
-    ShiftLight shiftLight(leds);
+    ShiftLight shiftLight(leds, sysTime);
 
     timG8.enable();
 
