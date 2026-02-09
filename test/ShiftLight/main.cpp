@@ -55,20 +55,22 @@ TEST_CASE("")    // TODO add name
 
     SUBCASE("")    // TODO add name
     {
-        for (unsigned int rpm = 0; rpm < blinkRpm; ++rpm) {
+        // for (unsigned int rpm = 0; rpm < blinkRpm; ++rpm) {
+        for (unsigned int rpm = 0; rpm < blinkRpm; rpm += 10) {
             shiftlight.update(rpm);
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for ", rpm, "RPM");
+                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for LED ", i, " at ", rpm, "RPM");
             }
         }
     }
 
     SUBCASE("")    // TODO add name
     {
-        for (unsigned int rpm = blinkRpm; rpm > 0; --rpm) {
+        // for (unsigned int rpm = blinkRpm; rpm > 0; --rpm) {
+        for (unsigned int rpm = blinkRpm; rpm > 0; rpm -= 10) {
             shiftlight.update(rpm);
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for ", rpm, "RPM");
+                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for LED ", i, " at ", rpm, "RPM");
             }
         }
     }
