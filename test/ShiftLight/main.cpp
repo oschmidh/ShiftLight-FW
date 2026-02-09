@@ -1,5 +1,7 @@
 #include "ShiftLight.hpp"
 
+#include <testing/FakeClock.hpp>
+
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
 
@@ -44,8 +46,10 @@ TEST_CASE("")    // TODO add name
 {
     static constexpr unsigned int nLeds = 4;
 
+    FakeClock clock{};
+
     EmulLeds<nLeds> leds;
-    ShiftLight shiftlight(leds);
+    ShiftLight shiftlight(leds, clock);
 
     static constexpr auto thresholds = calculateThresholds<nLeds>();
 

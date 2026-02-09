@@ -1,7 +1,7 @@
 shiftlight_test_exec = executable(
     'shiftlight_test',
     ['main.cpp'],
-    dependencies: [doctest_dep],
+    dependencies: [doctest_dep, shiftlight_lib],
     include_directories: project_include_dirs,
     native: true,
 )
