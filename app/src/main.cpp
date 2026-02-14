@@ -2,7 +2,6 @@
 #include "LedBuffer.hpp"
 #include "Devices.hpp"
 #include "System.hpp"
-#include <drivers/Tlc59208f.hpp>
 
 #include "ti_msp_dl_config.h"
 
@@ -29,9 +28,11 @@ void startupAnimation(auto& leds) noexcept
     }
 }
 
-I2c Devices::i2c0;
-CaptureTimG Devices::timG8;
-TimA0Clock Devices::timA0;
+// I2c Devices::i2c0;
+// CaptureTimG Devices::timG8;
+
+// static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
+// Tlc59208f Devices::ledDriver(i2c0, ledDriverI2cAddr);
 
 [[noreturn]] int main()
 {
@@ -40,12 +41,13 @@ TimA0Clock Devices::timA0;
     System::SteadyClock sysTime{};
     sysTime.init();
 
-    Devices::timG8.init();
+    Devices::dt.init();
 
-    Devices::i2c0.init();
+    // Devices::i2c0.init();
 
-    static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
-    Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
+    auto& ledDriver = Devices::dt.get<"ledDriver">();
+    // static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
+    // Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
     ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
 
     // TODO kinda ugly api...
@@ -69,10 +71,11 @@ TimA0Clock Devices::timA0;
                                                                            0x2e, 0x2e        // red
                                                                          };
     // clang-format on
-    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
+    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(Devices::ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    Devices::timG8.enable();
+    auto& timG8 = Devices::dt.get<"timG8">();
+    timG8.enable();
 
     startupAnimation(leds);
 
@@ -90,7 +93,7 @@ TimA0Clock Devices::timA0;
             shiftLight.update(rpm);
         };
 
-        Devices::timG8.getPeriod().transform(updateLeds);
+        timG8.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 
