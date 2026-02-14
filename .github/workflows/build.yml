@@ -30,7 +30,7 @@ jobs:
           sudo ln -s /usr/share/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-strip /usr/bin/arm-none-eabi-strip
           sudo ln -s /usr/share/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy
           sudo ln -s /usr/share/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump /usr/bin/arm-none-eabi-objdump
-          pip3 install --user meson
+          pip3 install --user meson==1.10.0
 
       - name: Setup meson
         run: |
