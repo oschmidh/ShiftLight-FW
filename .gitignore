@@ -1,3 +1,8 @@
 .settings/
+.vscode/
 Debug/
 .clangd
+
+# Meson subprojects
+**/subprojects/**
+!**/subprojects/*.wrap
