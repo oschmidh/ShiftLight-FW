@@ -1,5 +1,5 @@
-#ifndef LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
-#define LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#ifndef LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
+#define LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 
 #include "ti_msp_dl_config.h"
 
@@ -18,10 +18,8 @@ class PeriodicTimer {
     using TickType = std::uint16_t;
     static constexpr TickType period = std::numeric_limits<TickType>::max();
 
-    void init(CallbackType elapsedCallback) noexcept
+    void init() noexcept
     {
-        _cb = elapsedCallback;
-
         DL_TimerA_reset(TIMA0);
         DL_TimerA_enablePower(TIMA0);
 
@@ -46,6 +44,8 @@ class PeriodicTimer {
         DL_TimerA_startCounter(TIMA0);
     }
 
+    void setCallback(CallbackType elapsedCallback) noexcept { _cb = elapsedCallback; }
+
     TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
     void isr()
@@ -64,4 +64,4 @@ class PeriodicTimer {
     CallbackType _cb;
 };
 
-#endif    // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#endif    // LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP

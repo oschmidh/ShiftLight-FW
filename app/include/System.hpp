@@ -2,9 +2,7 @@
 #define APP_INCLUDE_SYSTEM_HPP
 
 #include <Devices.hpp>
-#include <Clock.hpp>
-
-#include <chrono>
+#include <TimerClock.hpp>
 
 namespace System {
 

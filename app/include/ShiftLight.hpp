@@ -12,10 +12,10 @@ static_assert(blinkRpm > targetRpm);
 
 using namespace std::literals::chrono_literals;
 
-template <typename LED_T, typename CLOCK_T>
+template <typename CLOCK_T, typename LED_T>
 class ShiftLight {
   public:
-    constexpr ShiftLight(LED_T& leds, const CLOCK_T& clock) noexcept
+    constexpr ShiftLight(const CLOCK_T& clock, LED_T& leds) noexcept
      : _blinkTimer(clock, 80ms)
      , _leds(leds)
     { }

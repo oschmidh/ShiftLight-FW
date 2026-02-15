@@ -1,5 +1,5 @@
-#ifndef LIB_INCLUDE_CLOCK_HPP
-#define LIB_INCLUDE_CLOCK_HPP
+#ifndef LIB_INCLUDE_TIMERCLOCK_HPP
+#define LIB_INCLUDE_TIMERCLOCK_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -17,7 +17,7 @@ class TimerSteadyClock {
 
     static time_point now() noexcept { return time_point(duration(elapsedTicks + TIMER_V.getTicks())); }
 
-    static void init() noexcept { TIMER_V.init(&overflowIsr); }
+    static void init() noexcept { TIMER_V.setCallback(&overflowIsr); }
 
   private:
     static void overflowIsr() noexcept { elapsedTicks += TIMER_V.period; }
@@ -25,12 +25,4 @@ class TimerSteadyClock {
     inline static volatile rep elapsedTicks{};
 };
 
-template <typename CLOCK_T, typename REP_T, typename PERIOD_T>
-static void busyWait(const CLOCK_T& clock, std::chrono::duration<REP_T, PERIOD_T> duration) noexcept
-{
-    const auto start = clock.now();
-    while (clock.now() < (start + duration))
-        ;
-}
-
-#endif // LIB_INCLUDE_CLOCK_HPP
+#endif    // LIB_INCLUDE_TIMERCLOCK_HPP

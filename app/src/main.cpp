@@ -2,10 +2,12 @@
 #include "LedBuffer.hpp"
 #include "Devices.hpp"
 #include "System.hpp"
+#include "BusyWait.hpp"
 #include <drivers/Tlc59208f.hpp>
 
 #include "ti_msp_dl_config.h"
 
+#include <numeric>
 #include <cstdint>
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
@@ -17,15 +19,15 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     for (unsigned int i = 0; i < numLeds; ++i) {
         leds.setLed(i, true);
         leds.show();
-        busyWait(clock, 80ms);
+        System::busyWait(clock, 80ms);
     }
 
-    busyWait(clock, 1250ms);
+    System::busyWait(clock, 1250ms);
 
     for (int i = numLeds - 1; i >= 0; --i) {
         leds.setLed(i, false);
         leds.show();
-        busyWait(clock, 80ms);
+        System::busyWait(clock, 80ms);
     }
 }
 
@@ -37,12 +39,13 @@ PeriodicTimer Devices::timA0;
 {
     SYSCFG_DL_init();
 
-    System::SteadyClock sysTime{};
-    sysTime.init();
-
+    Devices::timA0.init();
     Devices::timG8.init();
 
     Devices::i2c0.init();
+
+    System::SteadyClock sysTime{};
+    sysTime.init();
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
@@ -70,7 +73,7 @@ PeriodicTimer Devices::timA0;
                                                                          };
     // clang-format on
     LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
-    ShiftLight shiftLight(leds, sysTime);
+    ShiftLight shiftLight(sysTime, leds);
 
     Devices::timG8.enable();
 

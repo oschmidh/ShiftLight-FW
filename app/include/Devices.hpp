@@ -3,7 +3,7 @@
 
 #include <mspm0/I2c.hpp>
 #include <mspm0/CaptureTim.hpp>
-#include <mspm0/TimA0Clock.hpp>
+#include <mspm0/PeriodicTimer.hpp>
 
 namespace Devices {
 
