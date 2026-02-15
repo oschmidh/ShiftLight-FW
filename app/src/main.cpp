@@ -31,7 +31,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
 I2c Devices::i2c0;
 CaptureTimG Devices::timG8;
-TimA0Clock Devices::timA0;
+PeriodicTimer Devices::timA0;
 
 [[noreturn]] int main()
 {
@@ -74,7 +74,7 @@ TimA0Clock Devices::timA0;
 
     Devices::timG8.enable();
 
-    startupAnimation(leds);
+    startupAnimation(sysTime, leds);
 
     while (1) {
 
