@@ -1,7 +1,6 @@
 #ifndef LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 #define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
 
-#include "Interrupt.hpp"
 #include "Timer.hpp"
 
 #include <chrono>
@@ -19,7 +18,8 @@ template <TimerConfig CFG_V>
 class CaptureTim {
   public:
     using ErrorType = CaptureTimError;
-    static constexpr auto intLine = std::integral_constant<unsigned int, TIMG8_INT_IRQn>{};
+
+    static constexpr auto intLine = std::integral_constant<unsigned int, CFG_V.intLine>{};
 
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
@@ -60,16 +60,12 @@ class CaptureTim {
 
         _tim.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
-        System::InterruptHandler::registerIsr(
-            CFG_V.irqLine, System::InterruptHandler::CallbackType::create<CaptureTim, &CaptureTim::isr>(this));
-
         _commonRegs->CCLKCTL |= 1;
     }
 
     void enable() noexcept
     {
-        // NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.irqLine));    // TODO remove cast
-        NVIC_EnableIRQ(TIMG8_INT_IRQn);    // TODO use line nr in CFG_V
+        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.irqLine));    // TODO remove cast
         _tim.start();
     }
 
@@ -102,8 +98,8 @@ class CaptureTim {
         }
     }
 
+  private:
     Timer<CFG_V> _tim;
-
     volatile bool _synced{};
 };
 

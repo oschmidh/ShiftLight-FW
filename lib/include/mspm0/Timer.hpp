@@ -1,7 +1,6 @@
 #ifndef TIMER_HPP
 #define TIMER_HPP
 
-#include "Interrupt.hpp"
 #include "RegSet.hpp"
 
 #include <cstdint>
@@ -9,7 +8,7 @@
 namespace mspm0 {
 
 struct TimerConfig {
-    unsigned int irqLine;
+    unsigned int intLine;
     unsigned int channel;
     unsigned int prescaler;    // TODO max 0xff -> check somewhere?
 };
@@ -68,7 +67,7 @@ class Timer {
         _intCtrl.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
     }
 
-    void getPendingInterrups() const noexcept { _intCtrl.getPending(); }
+    void getPendingInterrupts() const noexcept { _intCtrl.getPending(); }
 
     void start() noexcept
     {
@@ -117,7 +116,6 @@ class Timer {
     volatile CommonRegisters* const _commonRegs;
     volatile CounterRegisters* const _ctrRegs;
 
-    volatile bool _synced{};
     // fn_ref _callback;    // TODO implement
 };
 
