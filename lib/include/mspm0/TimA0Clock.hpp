@@ -3,26 +3,24 @@
 
 #include "ti_msp_dl_config.h"
 
-#include "Interrupt.hpp"
-
 #include <limits>
 #include <cstdint>
 
-class TimA0Clock {
+class PeriodicTimer {
   public:
     static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
 
     static constexpr unsigned int presc = 255;             // TODO hardcoded here
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
 
-    using IsrType = void (*)(void);
+    using CallbackType = void (*)(void);
 
     using TickType = std::uint16_t;
     static constexpr TickType period = std::numeric_limits<TickType>::max();
 
-    static void init(IsrType isrCallback) noexcept
+    void init(CallbackType elapsedCallback) noexcept
     {
-        isrCb = isrCallback;
+        _cb = elapsedCallback;
 
         DL_TimerA_reset(TIMA0);
         DL_TimerA_enablePower(TIMA0);
@@ -40,9 +38,6 @@ class TimA0Clock {
         };
         DL_TimerA_initTimerMode(TIMA0, &timerCfg);
 
-        System::InterruptHandler::registerIsr(TIMA0_INT_IRQn,
-                                              System::InterruptHandler::CallbackType::create<TimA0Clock::isr>());
-
         DL_TimerA_enableInterrupt(TIMA0, DL_TIMERA_INTERRUPT_LOAD_EVENT);
         DL_TimerA_enableClock(TIMA0);
         DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
@@ -51,14 +46,14 @@ class TimA0Clock {
         DL_TimerA_startCounter(TIMA0);
     }
 
-    static TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
+    TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
-    static void isr()
+    void isr()
     {
         switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
             case DL_TIMERG_IIDX_LOAD:
-                if (TimA0Clock::isrCb) {
-                    TimA0Clock::isrCb();
+                if (_cb) {
+                    _cb();
                 }
                 break;
             default: break;
@@ -66,7 +61,7 @@ class TimA0Clock {
     }
 
   private:
-    inline static IsrType isrCb;
+    CallbackType _cb;
 };
 
 #endif    // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP

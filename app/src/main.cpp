@@ -10,22 +10,22 @@
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
 
-void startupAnimation(auto& leds) noexcept
+void startupAnimation(auto& clock, auto& leds) noexcept
 {
     using namespace std::literals::chrono_literals;
 
     for (unsigned int i = 0; i < numLeds; ++i) {
         leds.setLed(i, true);
         leds.show();
-        System::busyWait(80ms);
+        busyWait(clock, 80ms);
     }
 
-    System::busyWait(1250ms);
+    busyWait(clock, 1250ms);
 
     for (int i = numLeds - 1; i >= 0; --i) {
         leds.setLed(i, false);
         leds.show();
-        System::busyWait(80ms);
+        busyWait(clock, 80ms);
     }
 }
 
