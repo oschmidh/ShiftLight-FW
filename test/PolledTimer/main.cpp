@@ -40,6 +40,14 @@ TEST_CASE("testing PolledTimer")
         timer.poll(testAction);
     }
 
+    SUBCASE("no action if timer is is reloaded before polling")
+    {
+        clock.elapse(period);
+
+        timer.reload();
+        timer.poll(testAction);
+    }
+
     SUBCASE("action called only once after time elapsed")
     {
         REQUIRE_CALL(mock, action()).TIMES(1);

@@ -23,14 +23,14 @@ class PolledTimer {
         action();
     }
 
+    void reload() noexcept { _start = _clock.now(); }
+
   private:
     bool isElapsed() const noexcept
     {
         const auto current = _clock.now();
         return current - _start >= _period;
     }
-
-    void reload() noexcept { _start = _clock.now(); }
 
     const CLOCK_T& _clock;
     CLOCK_T::time_point _start;

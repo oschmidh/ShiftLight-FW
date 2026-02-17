@@ -10,44 +10,80 @@ static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targe
 static_assert(targetRpm > minRpm);
 static_assert(blinkRpm > targetRpm);
 
-using namespace std::literals::chrono_literals;
+constexpr auto blinkInterval = std::chrono::milliseconds(80);
 
 template <typename LED_T, typename CLOCK_T>
 class ShiftLight {
   public:
     constexpr ShiftLight(LED_T& leds, const CLOCK_T& clock) noexcept
-     : _blinkTimer(clock, 80ms)
+     : _blinker(clock)
      , _leds(leds)
     { }
 
     constexpr void update(unsigned int rpm) noexcept
     {
-        if (rpm >= _overrevTh) {
-            _overrevTh = blinkRpm - hysteresis;
-            _blinkTimer.poll([this]() noexcept { toggleLeds(); });
+        if (_overreving) {
+            if (rpm < (blinkRpm - hysteresis)) {
+                _overreving = false;
+                setLeds(rpm);
+            } else {
+                _blinker.update(_leds);
+            }
+
         } else {
-            _overrevTh = blinkRpm;
-            setLeds(rpm);
+            if (rpm >= blinkRpm) {
+                _overreving = true;
+                _blinker.reset();    // reset blinker so it always starts with the same phase
+                _blinker.blink(_leds);
+
+            } else {
+                setLeds(rpm);
+            }
         }
 
         _leds.show();
     }
 
   private:
+    class Blinker {
+      public:
+        constexpr Blinker(const CLOCK_T& clock) noexcept
+         : _timer(clock, blinkInterval)
+        { }
+
+        constexpr void update(LED_T& leds) noexcept
+        {
+            _timer.poll([this, &leds]() noexcept { blink(leds); });
+        }
+
+        constexpr void blink(LED_T& leds) noexcept
+        {
+            for (unsigned int i = 0; i < numLeds; ++i) {
+                leds.setLed(i, _state);
+            }
+            _state = !_state;
+        }
+
+        constexpr void reset() noexcept
+        {
+            _state = initial;
+            _timer.reload();
+        }
+
+      private:
+        static constexpr bool initial = false;
+
+        PolledTimer<CLOCK_T> _timer;
+        bool _state = initial;
+    };
+
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
     static constexpr unsigned int threshold(unsigned int ledNo) noexcept
     {
-        constexpr unsigned int stepSize = (targetRpm - minRpm) / (numLeds - 1);    // TODO correct?
-        return minRpm + stepSize * ledNo;                                          // TODO check
-    }
-
-    constexpr void toggleLeds() noexcept
-    {
-        for (unsigned int i = 0; i < numLeds; ++i) {
-            _leds.setLed(i, _blinkState );
-        }
-        _blinkState = !_blinkState;
+        constexpr unsigned int scaler = 1024;    // to reduce rounding error
+        constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
+        return minRpm + stepSize * ledNo / scaler;
     }
 
     constexpr void setLeds(unsigned int rpm) noexcept
@@ -68,9 +104,8 @@ class ShiftLight {
 
     static constexpr unsigned int hysteresis = 50;
 
-    unsigned int _overrevTh{blinkRpm};
-    bool _blinkState{};
-    PolledTimer<CLOCK_T> _blinkTimer;
+    bool _overreving{};
+    Blinker _blinker;
     LED_T& _leds;
 };
 
