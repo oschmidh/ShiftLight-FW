@@ -68,11 +68,34 @@ TEST_CASE("testing LED to RPM mapping")
 
     SUBCASE("decreasing RPM")
     {
+        constexpr unsigned int hyst = 50;    // hysteresis has to be considered on falling rpm
+
         for (unsigned int rpm = blinkRpm - stepsize; rpm > 0; rpm -= stepsize) {
             shiftlight.update(rpm);
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i]), "failed for LED ", i, " at ", rpm, "RPM");
+                CHECK_MESSAGE(leds.isOn[i] == (rpm >= thresholds[i] - hyst), "failed for LED ", i, " at ", rpm, "RPM");
             }
+        }
+    }
+
+    SUBCASE("hysteresis")
+    {
+        for (unsigned int i = 0; i < nLeds; ++i) {
+            // LED is not enabled before the upper threshold is crossed
+            shiftlight.update(thresholds[i] - 10);
+            CHECK(!leds.isOn[i]);
+
+            // crossing the threshold enables the corresponding LED
+            shiftlight.update(thresholds[i]);
+            CHECK(leds.isOn[i]);
+
+            // going below the upper threshold again is not enough to disable the LED
+            shiftlight.update(thresholds[i] - 10);
+            CHECK(leds.isOn[i]);
+
+            // going below the lower threshold disables the corresponding LED again
+            shiftlight.update(thresholds[i] - 60);
+            CHECK(!leds.isOn[i]);
         }
     }
 }

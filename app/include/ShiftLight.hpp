@@ -84,18 +84,29 @@ class ShiftLight {
         constexpr unsigned int scaler = 1024;    // to reduce rounding error
         constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
         return minRpm + stepSize * ledNo / scaler;
+
+        // if (_prevState == ledNo) {
+        //     return th - hysteresis;
+        // }
+
+        // return th;
     }
 
     constexpr void setLeds(unsigned int rpm) noexcept
     {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
-            if (rpm < threshold(i)) {
+            // state 0 means all off (so LED 0 is turned on in state 1) -> compare _prevState to i + 1
+            const auto thresh = _prevState == i + 1 ? threshold(i) - hysteresis : threshold(i);
+
+            if (rpm < thresh) {
                 break;
             }
 
             _leds.setLed(i, true);
         }
+
+        _prevState = i;
 
         for (; i < numLeds; ++i) {
             _leds.setLed(i, false);
@@ -106,7 +117,8 @@ class ShiftLight {
 
     bool _overreving{};
     Blinker _blinker;
+    unsigned int _prevState{};
     LED_T& _leds;
 };
 
-#endif // APP_INCLUDE_SHIFTLIGHT_HPP
+#endif    // APP_INCLUDE_SHIFTLIGHT_HPP
