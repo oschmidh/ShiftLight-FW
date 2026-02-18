@@ -79,25 +79,12 @@ class ShiftLight {
 
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
-    static constexpr unsigned int threshold(unsigned int ledNo) noexcept
-    {
-        constexpr unsigned int scaler = 1024;    // to reduce rounding error
-        constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
-        return minRpm + stepSize * ledNo / scaler;
-
-        // if (_prevState == ledNo) {
-        //     return th - hysteresis;
-        // }
-
-        // return th;
-    }
-
     constexpr void setLeds(unsigned int rpm) noexcept
     {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
             // state 0 means all off (so LED 0 is turned on in state 1) -> compare _prevState to i + 1
-            const auto thresh = _prevState == i + 1 ? threshold(i) - hysteresis : threshold(i);
+            const auto thresh = _prevState == i + 1 ? thresholds[i] - hysteresis : thresholds[i];
 
             if (rpm < thresh) {
                 break;
@@ -112,6 +99,18 @@ class ShiftLight {
             _leds.setLed(i, false);
         }
     }
+
+    static constexpr auto thresholds = [] {
+        constexpr unsigned int scaler = 1024;    // to reduce rounding error
+        constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
+
+        std::array<unsigned int, numLeds> thresholds{};
+
+        for (unsigned int i = 0; i < numLeds; ++i) {
+            thresholds[i] = minRpm + stepSize * i / scaler;
+        }
+        return thresholds;
+    }();
 
     static constexpr unsigned int hysteresis = 50;
 
