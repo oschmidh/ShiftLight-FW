@@ -91,5 +91,6 @@ static constexpr unsigned int numDevInterrupts = 32;
             sysTickHandler,
         },
     .devIsrTable =
-        System::InterruptHandler<numDevInterrupts, Devices::i2c0, Devices::timG8, Devices::timA0>::createIsrTable(),
+        // System::InterruptHandler<numDevInterrupts, Devices::i2c0, Devices::timG8, Devices::timA0>::createIsrTable(),
+    System::InterruptHandler<numDevInterrupts>::createIsrTable(),    // TODO
 };

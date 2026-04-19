@@ -8,7 +8,7 @@
 
 class TimA0Clock {
   public:
-    static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
+    // static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
 
     static constexpr unsigned int presc = 255;             // TODO hardcoded here
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
@@ -18,9 +18,10 @@ class TimA0Clock {
     using TickType = std::uint16_t;
     static constexpr TickType period = std::numeric_limits<TickType>::max();
 
-    static void init(IsrType isrCallback) noexcept
+    // static void init(IsrType isrCallback) noexcept
+    static void init() noexcept
     {
-        isrCb = isrCallback;
+        // isrCb = isrCallback; // TODO test
 
         DL_TimerA_reset(TIMA0);
         DL_TimerA_enablePower(TIMA0);

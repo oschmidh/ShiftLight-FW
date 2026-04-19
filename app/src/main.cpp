@@ -39,13 +39,13 @@ void startupAnimation(auto& leds) noexcept
     SYSCFG_DL_init();
 
     System::SteadyClock sysTime{};
-    sysTime.init();
+    // sysTime.init();
 
-    Devices::dt.init();
+    devices.init();
 
     // Devices::i2c0.init();
 
-    auto& ledDriver = Devices::dt.get<"ledDriver">();
+    auto& ledDriver = devices.get<"ledDriver">();
     // static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
     // Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
     ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
@@ -71,10 +71,10 @@ void startupAnimation(auto& leds) noexcept
                                                                            0x2e, 0x2e        // red
                                                                          };
     // clang-format on
-    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(Devices::ledDriver);
+    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    auto& timG8 = Devices::dt.get<"timG8">();
+    auto& timG8 = devices.get<"timG8">();
     timG8.enable();
 
     startupAnimation(leds);

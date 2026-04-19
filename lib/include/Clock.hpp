@@ -15,7 +15,8 @@ class TimerSteadyClock {
 
     static time_point now() noexcept { return time_point(duration(elapsedTicks + TIMER_T::getTicks())); }
 
-    static void init() noexcept { TIMER_T::init(&overflowIsr); }
+    // TODO:
+    // static void init() noexcept { TIMER_T::init(&overflowIsr); }
 
   private:
     static void overflowIsr() noexcept { elapsedTicks += TIMER_T::period; }
