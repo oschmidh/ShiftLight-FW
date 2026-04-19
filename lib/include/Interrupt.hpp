@@ -1,6 +1,8 @@
 #ifndef LIB_INCLUDE_INTERRUPT_HPP
 #define LIB_INCLUDE_INTERRUPT_HPP
 
+#include "Typelist.hpp"
+
 #include <array>
 #include <tuple>
 #include <utility>
@@ -22,13 +24,12 @@ template <unsigned int ISR_NUM_V, typename FIRST_T, typename... REST_Ts>
     requires(FIRST_T::intLine == ISR_NUM_V)
 struct FindIsrDevs<ISR_NUM_V, FIRST_T, REST_Ts...> {
     static_assert(requires(FIRST_T dev) { dev.isr(); }, "Device specifies Interrupt line, but no ISR function");
-    using Type = decltype(std::tuple_cat(std::declval<std::tuple<FIRST_T>>(),
-                                         std::declval<typename FindIsrDevs<ISR_NUM_V, REST_Ts...>::Type>()));
+    using Type = Append<FIRST_T, typename FindIsrDevs<ISR_NUM_V, REST_Ts...>::Type>::type;
 };
 
 template <unsigned int ISR_NUM_V>
 struct FindIsrDevs<ISR_NUM_V> {
-    using Type = std::tuple<>;
+    using Type = Typelist<>;
 };
 
 }    // namespace detail
@@ -51,18 +52,18 @@ struct InterruptHandler {
         return &isr<Devices>;
     }
 
-    template <typename DEV_TUPLE_T>
-        requires(std::tuple_size_v<DEV_TUPLE_T> > 0)
+    template <typename DEV_LIST_T>
+        requires(!IsEmpty<DEV_LIST_T>::value)
     static void isr() noexcept
     {
         return []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) noexcept {
-            (std::get<std::tuple_element_t<IDX_Vs, DEV_TUPLE_T>&>(std::tie(DEVICE_Vs...)).isr(), ...);
-        }(std::make_index_sequence<std::tuple_size_v<DEV_TUPLE_T>>());
+            (std::get<typename At<IDX_Vs, DEV_LIST_T>::type&>(std::tie(DEVICE_Vs...)).isr(), ...);
+        }(std::make_index_sequence<Size<DEV_LIST_T>::value>());
     }
 
     // empty default handler:
-    template <typename DEV_TUPLE_T>
-        requires(!std::tuple_size_v<DEV_TUPLE_T>)
+    template <typename DEV_LIST_T>
+        requires(IsEmpty<DEV_LIST_T>::value)
     static void isr() noexcept
     { }
 };
