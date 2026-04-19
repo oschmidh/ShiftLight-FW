@@ -37,7 +37,8 @@ struct Label { };
 // template <std::size_t N>
 // struct Label<ConstString<N>> { };
 
-template <typename DRIVER_T, typename...>
+// template <typename DRIVER_T, typename...>
+template <typename DRIVER_T, auto...>
 struct Node {
     // DRIVER_T dev;
 };
@@ -59,25 +60,32 @@ struct Node {
 // template <typename... CHILD_NODE_Ts>
 // struct Children { };
 
-template <template <typename...> typename DRIVER_T, typename...>
+template <template <typename...> typename DRIVER_T, auto...>
 struct Child { };
 
 template <typename CHILD_T, typename PARENT_T>
 struct ConvertChildToNode;
 
-template <template <typename...> typename CHILD_DRIVER_T, typename... CHILD_ARG_Ts, typename PARENT_DRIVER_T,
-          typename... PARENT_ARG_Ts>
-struct ConvertChildToNode<Child<CHILD_DRIVER_T, CHILD_ARG_Ts...>, Node<PARENT_DRIVER_T, PARENT_ARG_Ts...>> {
-    using Type = Node<CHILD_DRIVER_T<PARENT_DRIVER_T>, CHILD_ARG_Ts...>;
+template <template <typename...> typename CHILD_DRIVER_T, auto... CHILD_ARG_Vs, typename PARENT_DRIVER_T,
+          auto... PARENT_ARG_Vs>
+struct ConvertChildToNode<Child<CHILD_DRIVER_T, CHILD_ARG_Vs...>, Node<PARENT_DRIVER_T, PARENT_ARG_Vs...>> {
+    using Type = Node<CHILD_DRIVER_T<PARENT_DRIVER_T>, CHILD_ARG_Vs...>;
 };
 
-template <typename CHILD_DRIVER_T, typename... CHILD_ARG_Ts, typename PARENT_DRIVER_T, typename... PARENT_ARG_Ts>
-struct ConvertChildToNode<Node<CHILD_DRIVER_T, CHILD_ARG_Ts...>, Node<PARENT_DRIVER_T, PARENT_ARG_Ts...>> {
-    using Type = Node<CHILD_DRIVER_T, CHILD_ARG_Ts...>;
+template <typename CHILD_DRIVER_T, auto... CHILD_ARG_Vs, typename PARENT_DRIVER_T, auto... PARENT_ARG_Vs>
+struct ConvertChildToNode<Node<CHILD_DRIVER_T, CHILD_ARG_Vs...>, Node<PARENT_DRIVER_T, PARENT_ARG_Vs...>> {
+    using Type = Node<CHILD_DRIVER_T, CHILD_ARG_Vs...>;
 };
 
-template <std::uint8_t>
-struct Address { };
+// TODO create namespace for args?
+
+// template <std::uint8_t>
+// struct Address { };
+
+template <std::integral T>
+struct Address {
+    T value;
+};
 
 template <std::uint8_t>
 struct Interrupt { };
@@ -87,7 +95,6 @@ struct Interrupt { };
 
 template <typename DRIVER_T>
 struct CtorArgs {
-    template <typename...>
     using type = Typelist<>;
 };
 
@@ -97,13 +104,13 @@ struct Test {
 };
 
 template <typename T>
-struct IsChild : std::false_type { };
+struct IsNode : std::false_type { };
 
-template <template <typename...> typename DRIVER_T, typename... ARG_Vs>
-struct IsChild<Child<DRIVER_T, ARG_Vs...>> : std::true_type { };
+template <template <typename...> typename DRIVER_T, auto... ARG_Vs>
+struct IsNode<Child<DRIVER_T, ARG_Vs...>> : std::true_type { };
 
-template <typename DRIVER_T, typename... ARG_Vs>
-struct IsChild<Node<DRIVER_T, ARG_Vs...>> : std::true_type { };    // TODO hack to make it work with completedNodes
+template <typename DRIVER_T, auto... ARG_Vs>
+struct IsNode<Node<DRIVER_T, ARG_Vs...>> : std::true_type { };    // TODO hack to make it work with completedNodes
 
 // namespace Concepts {
 
@@ -122,9 +129,10 @@ struct CollectChildren {
 //     using Type = std::tuple<CHILD_Ts..., typename CollectChildren<CHILD_Ts>::Type...>;
 // };
 
-template <typename DRIVER_T, typename... ARG_Ts>
-struct CollectChildren<Node<DRIVER_T, ARG_Ts...>> {
-    using Type = typename Filter<IsChild, Typelist<ARG_Ts...>>::type;
+template <typename DRIVER_T, auto... ARG_Vs>
+struct CollectChildren<Node<DRIVER_T, ARG_Vs...>> {
+    // using T = Test<Typelist<std::remove_cvref_t<decltype(ARG_Vs)...>>>::Type;
+    using Type = typename Filter<IsNode, Typelist<std::remove_cvref_t<decltype(ARG_Vs)>...>>::type;
 };
 
 template <typename PARENT_T>
@@ -221,18 +229,17 @@ struct Flatten<Typelist<>> {
 template <typename>
 struct AssembleDriverTypes;
 
-template <typename DRIVER_T, typename... ARG_Ts>
-struct AssembleDriverTypes<Node<DRIVER_T, ARG_Ts...>> {
+template <typename DRIVER_T, auto... ARG_Vs>
+struct AssembleDriverTypes<Node<DRIVER_T, ARG_Vs...>> {
   private:
-    template <typename T>
+    template <auto V>
     static constexpr auto conditionallyConvertChild() noexcept    // TODO needed for lazy evaluation of
                                                                   // ConvertChildToNode
     {
-        if constexpr (IsChild<T>::value) {
-            return std::type_identity<
-                typename AssembleDriverTypes<typename ConvertChildToNode<T, Node<DRIVER_T>>::Type>::Type>{};
+        if constexpr (IsNode<decltype(V)>::value) {
+            return typename AssembleDriverTypes<typename ConvertChildToNode<decltype(V), Node<DRIVER_T>>::Type>::Type{};
         } else {
-            return std::type_identity<T>{};
+            return V;
         }
     }
 
@@ -248,7 +255,7 @@ struct AssembleDriverTypes<Node<DRIVER_T, ARG_Ts...>> {
     //         typename AssembleDriverTypes<typename ConvertChildToNode<ARG_Ts, Node<DRIVER_T>>::Type>::Type,
     //         ARG_Ts>...>;
 
-    using Type = Node<DRIVER_T, typename decltype(conditionallyConvertChild<ARG_Ts>())::type...>;
+    using Type = Node<DRIVER_T, conditionallyConvertChild<ARG_Vs>()...>;
 
     // using Type = Node<DRIVER_T, decltype([]() {
     //                       if constexpr (IsChild<ARG_T>::value) {
@@ -326,8 +333,8 @@ struct CompleteNodes<Typelist<NODE_Ts...>> {
 template <typename>
 struct GetDriver;
 
-template <typename DRIVER_T, typename... ARG_Ts>
-struct GetDriver<Node<DRIVER_T, ARG_Ts...>> {
+template <typename DRIVER_T, auto... ARG_Vs>
+struct GetDriver<Node<DRIVER_T, ARG_Vs...>> {
     using type = DRIVER_T;
 };
 
@@ -339,13 +346,13 @@ struct GetDriver<Node<DRIVER_T, ARG_Ts...>> {
 template <typename>
 struct GetLabel;
 
-template <typename DRIVER_T, typename FIRST_ARG_T, typename... REST_ARG_Ts>
-struct GetLabel<Node<DRIVER_T, FIRST_ARG_T, REST_ARG_Ts...>> {
-    using Type = typename GetLabel<Node<DRIVER_T, REST_ARG_Ts...>>::Type;
+template <typename DRIVER_T, auto FIRST_ARG_V, auto... REST_ARG_Vs>
+struct GetLabel<Node<DRIVER_T, FIRST_ARG_V, REST_ARG_Vs...>> {
+    using Type = typename GetLabel<Node<DRIVER_T, REST_ARG_Vs...>>::Type;
 };
 
-template <typename DRIVER_T, ConstString STR_V, typename... ARG_Ts>
-struct GetLabel<Node<DRIVER_T, Label<STR_V>, ARG_Ts...>> {
+template <typename DRIVER_T, ConstString STR_V, Label<STR_V> FIRST_ARG_V, auto... REST_ARG_Vs>
+struct GetLabel<Node<DRIVER_T, FIRST_ARG_V, REST_ARG_Vs...>> {
     using Type = Label<STR_V>;
 };
 
@@ -360,9 +367,9 @@ struct GetLabel<Node<DRIVER_T, Label<STR_V>, ARG_Ts...>> {
 template <typename NODE_T>
 struct DeviceBuilder;
 
-template <typename DRIVER_T, typename LABEL_T>
-struct DeviceBuilder<Node<DRIVER_T, LABEL_T>> {
-    static constexpr Node<DRIVER_T, LABEL_T> create(auto& parent) noexcept { return {parent}; }
+template <typename DRIVER_T, auto LABEL_V>
+struct DeviceBuilder<Node<DRIVER_T, LABEL_V>> {
+    static constexpr Node<DRIVER_T, LABEL_V> create(auto& parent) noexcept { return {parent}; }
 };
 
 template <typename NODE_T, typename PARENT_T>
@@ -534,27 +541,66 @@ struct DriverStorage {
 template <typename, typename>
 struct Abc;    // TODO rename
 
+// template <typename, template <auto> typename>
+// struct GetNodeArg;
+
+// template <typename DRIVER_T, typename F_ARG_T, typename... R_ARG_Ts, template <auto> typename TARGET_ARG_T,
+//           auto TARGET_ARG_V>
+// struct GetNodeArg<Node<DRIVER_T, F_ARG_T, R_ARG_Ts...>, TARGET_ARG_T> {
+//     static constexpr auto value = GetNodeArg<Node<DRIVER_T, R_ARG_Ts...>, TARGET_ARG_T>::value;
+// };
+
+// template <typename DRIVER_T, typename... R_ARG_Ts, template <auto> typename TARGET_ARG_T, auto TARGET_ARG_V>
+// struct GetNodeArg<Node<DRIVER_T, TARGET_ARG_T<TARGET_ARG_V>, R_ARG_Ts...>, TARGET_ARG_T> {
+//     static constexpr auto value = TARGET_ARG_V;
+// };
+
+template <typename, typename>
+struct GetNodeArg;
+
+template <typename DRIVER_T, auto F_ARG_V, auto... R_ARG_Vs, typename TARGET_ARG_T>
+struct GetNodeArg<Node<DRIVER_T, F_ARG_V, R_ARG_Vs...>, TARGET_ARG_T> {
+    static constexpr auto value = GetNodeArg<Node<DRIVER_T, R_ARG_Vs...>, TARGET_ARG_T>::value;
+};
+
+template <typename DRIVER_T, typename TARGET_ARG_T, TARGET_ARG_T TARGET_ARG_V, auto... R_ARG_Vs>
+struct GetNodeArg<Node<DRIVER_T, TARGET_ARG_V, R_ARG_Vs...>, TARGET_ARG_T> {
+    static constexpr auto value = TARGET_ARG_V.value;
+};
+
 // template <typename DRIVER_T, typename... ARG_Ts>
 // struct NodeAssembler;
 
-// template <typename DRIVER_T, typename... ARG_Ts>
-// struct NodeAssembler<Node<DRIVER_T, ARG_Ts...>> {
-//     static constexpr DRIVER_T& construct(std::uintptr_t location) noexcept
+// template <typename DRIVER_T, auto... ARG_Vs>
+// struct NodeAssembler<Node<DRIVER_T, ARG_Vs...>> {
+//     static constexpr DRIVER_T& construct(std::uintptr_t location, auto& parent) noexcept
 //     {
-//         return *std::construct_at(reinterpret_cast<DRIVER_T*>(location), args..., );
+//         using AdditionalCtorTypes = typename CtorArgs<DRIVER_T>::type;
+
+//         return [location, &parent]<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+//             return *std::construct_at(
+//                 reinterpret_cast<DRIVER_T*>(location), parent,
+//                 GetNodeArg<Node<DRIVER_T, ARG_Vs...>, typename At<IDX_Vs, AdditionalCtorTypes>::type>::value...);
+//         }(std::make_index_sequence<Size<AdditionalCtorTypes>::value>{});
+
+//         // return *std::construct_at(reinterpret_cast<DRIVER_T*>(location), parent);
 //     }
-// }
-// ;
+// };
 
 template <typename NODE_T, typename NODE_LIST_T>
 static constexpr void constructBranch(std::span<std::byte> storage, auto&... args) noexcept    // TODO combine with
                                                                                                // above fn?
 {
     using Driver = typename GetDriver<NODE_T>::type;
-    auto& driver =
-        // TODO bit cast or reinterpret cast?
-        *std::construct_at(reinterpret_cast<Driver*>(&storage[0] + DriverStorage<NODE_LIST_T>::template offset<NODE_T>),
-                           args...);
+    using AdditionalCtorTypes = typename CtorArgs<Driver>::type;
+
+    void* const storageAddr = &storage[0] + DriverStorage<NODE_LIST_T>::template offset<NODE_T>;
+
+    Driver& driver = *[storageAddr, &args...]<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+        return std::construct_at(reinterpret_cast<Driver*>(storageAddr),    // TODO bit cast or reinterpret cast?
+                                 args..., GetNodeArg<NODE_T, typename At<IDX_Vs, AdditionalCtorTypes>::type>::value...);
+    }(std::make_index_sequence<Size<AdditionalCtorTypes>::value>{});
+
     // *std::construct_at(std::bit_cast<Driver*>(&storage[0] + StorageOffset<NODE_T, NODE_LIST_T>::value), args...);
     // *std::construct_at(static_cast<Driver*>(static_cast<std::uintptr_t>(static_cast<void*>(&storage[0])) +
     //                                         StorageOffset<NODE_T, NODE_LIST_T>::value),
@@ -820,5 +866,25 @@ struct Devicetree {
 // {
 //     return {};
 // }
+
+namespace testing {
+
+static_assert(std::is_same_v<typename Filter<IsNode, Typelist<int, float, Node<bool>>>::type, Typelist<Node<bool>>>);
+
+// using T = Test<typename CollectChildren<Node<int, Node<bool>{}>>::Type>::Type
+static_assert(std::is_same_v<typename CollectChildren<Node<int, Node<bool>{}>>::Type, Typelist<Node<bool>>>);
+
+// static_assert(std::is_same_v<typename Flatten<Node<int, Node<bool>{}, Node<char, Node<double>{}>{}>>::type,
+//                              Typelist<Node<int>, Node<bool>, Node<char>, Node<double>>>);
+
+static_assert(std::is_same_v<typename GetLabel<Node<int, Label<"Test">{}>>::Type, Label<"Test">>);
+static_assert(std::is_same_v<typename GetLabel<Node<int, bool{}, Label<"Test">{}>>::Type, Label<"Test">>);
+
+static_assert(
+    std::is_same_v<
+        typename FindByLabel<Label<"test">, Typelist<Node<bool, Label<"test2">{}>, Node<int, Label<"test">{}>>>::Type,
+        Node<int, Label<"test">{}>>);
+
+}    // namespace testing
 
 #endif    // LIB_INCLUDE_DEVICETREE_HPP

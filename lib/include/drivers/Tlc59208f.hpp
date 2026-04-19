@@ -39,13 +39,8 @@ class Tlc59208f {
         Mode mode;
     };
 
-    // constexpr Tlc59208f(const I2C_T& bus, std::uint8_t i2cAddr) noexcept
-    //  : _i2cAddr(i2cAddr)
-    //  , _bus(bus)
-    // { }
-
-    constexpr Tlc59208f(const I2C_T& bus) noexcept    // TODO for test
-     : _i2cAddr(0x20)
+    constexpr Tlc59208f(const I2C_T& bus, std::uint8_t i2cAddr) noexcept
+     : _i2cAddr(i2cAddr)
      , _bus(bus)
     { }
 
