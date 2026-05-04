@@ -1,8 +1,9 @@
-#ifndef TIMER_HPP
-#define TIMER_HPP
+#ifndef LIB_INCLUDE_MSPM0_TIMER_HPP
+#define LIB_INCLUDE_MSPM0_TIMER_HPP
 
 #include "RegSet.hpp"
 
+#include <utility>
 #include <cstdint>
 
 namespace mspm0 {
@@ -13,9 +14,11 @@ struct TimerConfig {
     unsigned int prescaler;    // TODO max 0xff -> check somewhere?
 };
 
-template <TimerConfig CFG_V>
+template <TimerConfig CFG_V>    // TODO add base class to avoid template bloat
 class Timer {
   public:
+    enum class CcpDirection { Input = 0, Output = 1 };
+
     constexpr Timer(uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
@@ -33,41 +36,130 @@ class Timer {
         _commonRegs->CPS = CFG_V.prescaler;
     }
 
-    _ctrRegs->LOAD = 0xffff;
+    void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }
+
     // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
-    static constexpr std::uint32_t ctrctlmask =
-        (0x3 << 28u) | (0x3 << 4u) | (0x1 << 1u) | (0x7 << 13u) | (0x7 << 10u) | (0x7 << 7u);
-    _ctrRegs->CTRCTL &= ~ctrctlmask;
-    _ctrRegs->CTRCTL |= (0x2 << 28u) | (0x2 << 4u) | (0x1 << 1u) | (CFG_V.channel << 13u) | (CFG_V.channel << 10u) |
-                        (CFG_V.channel << 7u);    // set
-                                                  // CM
-    // to up,
-    // REPEAT
-    // to
-    // continue,
-    // CVAE
-    // to
-    // load
-    // 0, select channel for CZC, CAC, CLC
+    enum class CountMode : std::uint32_t {
+        Down = 0,
+        UpDown = 1,
+        Up = 2,
+    };
 
-    // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
-    // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
-    _ctrRegs->CCCTL[CFG_V.channel] |= 0x20000 | (GPTIMER_CCCTL_01_ACOND_TIMCLK << 4u) |
-                                      (GPTIMER_CCCTL_01_ZCOND_CC_TRIG_NO_EFFECT << 12u) |
-                                      (GPTIMER_CCCTL_01_LCOND_CC_TRIG_NO_EFFECT << 8u) | 2;    // set
-                                                                                               // COC, capture
-                                                                                               // falling edge
-    _commonRegs->CCPD &= ~(1 << CFG_V.channel);
+    enum class Repeat : std::uint32_t {
+        No = 0,
+        Yes = 1,
+        // reserved = 2
+        StopInDebug = 3,
+    };
 
-    _commonRegs->CCLKCTL |= 1;
+    enum class CtrValAfterEn : std::uint32_t {
+        LoadVal = 0,
+        Unchanged = 1,
+        Zero = 2,
+    };
+
+    // enum class CtrLoadControl : std::uint32_t {
+    // LoadVal=0,
+    // Unchanged=1,
+    // Zero=2,
+    // };
+
+    struct Config {
+        CountMode countMode = CountMode::Down;
+        Repeat repeat = Repeat::No;
+        std::uint32_t ctrLoadControl = 7;       // TODO use enum?
+        std::uint32_t ctrAdvanceControl = 7;    // TODO use enum?
+        std::uint32_t ctrZeroControl = 7;       // TODO use enum?
+        bool phaseLoadEn = false;
+        CtrValAfterEn ctrValAfterEn = CtrValAfterEn::LoadVal;
+    };
+
+    enum class CaptureCondition : std::uint32_t {
+        None = 0,
+        RisingEdge = 1,
+        FallingEdge = 2,
+        BothEdges = 3,
+    };
+
+    enum class AdvanceCondition : std::uint32_t {
+        TimerClk = 0,
+        RisingEdge = 1,
+        FallingEdge = 2,
+        BothEdges = 3,
+        // reserved = 4
+        HighLevel = 5,
+    };
+
+    enum class LoadCondition : std::uint32_t {
+        None = 0,
+        RisingEdge = 1,
+        FallingEdge = 2,
+        BothEdges = 3,
+    };
+
+    enum class ZeroCondition : std::uint32_t {
+        None = 0,
+        RisingEdge = 1,
+        FallingEdge = 2,
+        BothEdges = 3,
+    };
+
+    enum class CaptureOrCompare : std::uint32_t {
+        Compare = 0,
+        Capture = 1,
+    };
+
+    struct CaptureCompareConfig {
+        unsigned int channel;
+        CaptureCondition captureCondition = CaptureCondition::None;
+        AdvanceCondition advanceCondition = AdvanceCondition::TimerClk;
+        LoadCondition loadCondition = LoadCondition::None;
+        ZeroCondition zeroCondition = ZeroCondition::None;
+        CaptureOrCompare captureOrCompare = CaptureOrCompare::Compare;
+    };
+
+    void configure(const Config& cfg) noexcept
+    {
+        _ctrRegs->CTRCTL = (std::to_underlying(cfg.ctrValAfterEn) << 28u) | (cfg.phaseLoadEn << 24u) |
+                           (cfg.ctrZeroControl << 13u) | (cfg.ctrAdvanceControl << 10u) | (cfg.ctrLoadControl << 7u) |
+                           (std::to_underlying(cfg.countMode) << 4u) |
+                           (std::to_underlying(cfg.repeat) << 1u);    // TODO magic
+                                                                      // offsets
+    }
+
+    void configureCaptureCompare(const CaptureCompareConfig& cfg) noexcept
+    {
+        // TODO verify channel in range?
+        _ctrRegs->CCCTL[cfg.channel] =
+            std::to_underlying(cfg.captureOrCompare) | (std::to_underlying(cfg.captureOrCompare) << 17u) |
+            (std::to_underlying(cfg.zeroCondition) << 12u) | (std::to_underlying(cfg.loadCondition) << 8u) |
+            (std::to_underlying(cfg.advanceCondition) << 4u) | (std::to_underlying(cfg.captureCondition));    // TODO
+                                                                                                              // magic
+                                                                                                              // offsets
+    }
+
+    void configureCcpDirection(unsigned int channel, CcpDirection dir) noexcept
+    {
+        // TODO verify channel in range?
+        _commonRegs->CCPD &= ~(1u << channel);
+        _commonRegs->CCPD |= std::to_underlying(dir) << channel;
+    }
+
+    std::uint32_t getCaptureCompareVal(unsigned int channel) const noexcept { return _ctrRegs->CC[channel]; }
+
+    void setCounter(std::uint32_t val) noexcept { _ctrRegs->CTR = val; }
+
+    void enableClock() noexcept { _commonRegs->CCLKCTL |= 1; }
+
+    void disableClock() noexcept { _commonRegs->CCLKCTL &= ~1; }
 
     void enableInterrupts(std::uint32_t mask) noexcept
     {
         _intCtrl.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
     }
 
-    void getPendingInterrupts() const noexcept { _intCtrl.getPending(); }
+    std::uint32_t getPendingInterrupts() const noexcept { return _intCtrl.getPending(); }
 
     void start() noexcept
     {
@@ -121,4 +213,4 @@ class Timer {
 
 }    // namespace mspm0
 
-#endif    // TIMER_HPP
+#endif    // LIB_INCLUDE_MSPM0_TIMER_HPP

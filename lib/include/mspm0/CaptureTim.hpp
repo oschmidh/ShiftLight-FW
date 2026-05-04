@@ -31,41 +31,35 @@ class CaptureTim {
     {
         _tim.init();
 
-        _ctrRegs->LOAD = 0xffff;
+        _tim.setReloadVal(0xffff);
         // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
-        static constexpr std::uint32_t ctrctlmask =
-            (0x3 << 28u) | (0x3 << 4u) | (0x1 << 1u) | (0x7 << 13u) | (0x7 << 10u) | (0x7 << 7u);
-        _ctrRegs->CTRCTL &= ~ctrctlmask;
-        _ctrRegs->CTRCTL |= (0x2 << 28u) | (0x2 << 4u) | (0x1 << 1u) | (CFG_V.channel << 13u) | (CFG_V.channel << 10u) |
-                            (CFG_V.channel << 7u);    // set
-                                                      // CM
-        // to up,
-        // REPEAT
-        // to
-        // continue,
-        // CVAE
-        // to
-        // load
-        // 0, select channel for CZC, CAC, CLC
+        _tim.configure({.countMode = Timer<CFG_V>::CountMode::Up,
+                        .repeat = Timer<CFG_V>::Repeat::Yes,
+                        .ctrLoadControl = CFG_V.channel,
+                        .ctrAdvanceControl = CFG_V.channel,
+                        .ctrZeroControl = CFG_V.channel,
+                        .ctrValAfterEn = Timer<CFG_V>::CtrValAfterEn::Zero});
 
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
         // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
-        _ctrRegs->CCCTL[CFG_V.channel] |= 0x20000 | (GPTIMER_CCCTL_01_ACOND_TIMCLK << 4u) |
-                                          (GPTIMER_CCCTL_01_ZCOND_CC_TRIG_NO_EFFECT << 12u) |
-                                          (GPTIMER_CCCTL_01_LCOND_CC_TRIG_NO_EFFECT << 8u) | 2;    // set
-                                                                                                   // COC, capture
-                                                                                                   // falling edge
-        _commonRegs->CCPD &= ~(1 << CFG_V.channel);
+        _tim.configureCaptureCompare({.channel = CFG_V.channel,
+                                      .captureCondition = Timer<CFG_V>::CaptureCondition::FallingEdge,
+                                      .advanceCondition = Timer<CFG_V>::AdvanceCondition::TimerClk,
+                                      .loadCondition = Timer<CFG_V>::LoadCondition::None,
+                                      .zeroCondition = Timer<CFG_V>::ZeroCondition::None,
+                                      .captureOrCompare = Timer<CFG_V>::CaptureOrCompare::Capture});
+
+        _tim.configureCcpDirection(CFG_V.channel, Timer<CFG_V>::CcpDirection::Input);
 
         _tim.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
-        _commonRegs->CCLKCTL |= 1;
+        _tim.enableClock();
     }
 
     void enable() noexcept
     {
-        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.irqLine));    // TODO remove cast
+        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.intLine));    // TODO remove cast
         _tim.start();
     }
 
@@ -77,7 +71,7 @@ class CaptureTim {
             return std::unexpected(CaptureTimError::NotSynced);
         }
 
-        return PeriodType{_ctrRegs->CC[CFG_V.channel]};
+        return PeriodType{_tim.getCaptureCompareVal(CFG_V.channel)};
     }
 
     void isr() noexcept
@@ -85,7 +79,7 @@ class CaptureTim {
         switch (_tim.getPendingInterrupts()) {
             case DL_TIMERG_IIDX_CC1_UP:
                 _synced = true;
-                _ctrRegs->CTR = 0;    // Manual reload, workaround for ERRATA TIMER_ERR_01
+                _tim.setCounter(0);    // Manual reload, workaround for ERRATA TIMER_ERR_01
                 // _callback(PeriodType{_ctrRegs->CC[CFG_V.channel]}); // TODO implement
                 break;
             case DL_TIMERG_IIDX_OVERFLOW:
