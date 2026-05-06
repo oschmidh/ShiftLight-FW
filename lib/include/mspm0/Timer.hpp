@@ -148,6 +148,11 @@ class Timer {
 
     std::uint32_t getCaptureCompareVal(unsigned int channel) const noexcept { return _ctrRegs->CC[channel]; }
 
+    void setCaptureCompareVal(unsigned int channel, std::uint32_t value) const noexcept
+    {
+        _ctrRegs->CC[channel] = value;
+    }
+
     void setCounter(std::uint32_t val) noexcept { _ctrRegs->CTR = val; }
 
     void enableClock() noexcept { _commonRegs->CCLKCTL |= 1; }

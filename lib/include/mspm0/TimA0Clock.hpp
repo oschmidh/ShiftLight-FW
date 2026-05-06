@@ -1,16 +1,19 @@
 #ifndef LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
 #define LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
 
-#include "ti_msp_dl_config.h"
+#include "Timer.hpp"
 
 #include <limits>
 #include <cstdint>
 
+namespace mspm0 {
+
+template <TimerConfig CFG_V>
 class PeriodicTimer {
   public:
     static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
 
-    static constexpr unsigned int presc = 255;             // TODO hardcoded here
+    static constexpr unsigned int presc = CFG_V.prescaler;
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
 
     using CallbackType = void (*)(void);
@@ -18,39 +21,47 @@ class PeriodicTimer {
     using TickType = std::uint16_t;
     static constexpr TickType period = std::numeric_limits<TickType>::max();
 
+    constexpr PeriodicTimer(uintptr_t addr) noexcept
+     : _tim(addr)
+    { }
+
     void init(CallbackType elapsedCallback) noexcept
     {
         _cb = elapsedCallback;
 
-        DL_TimerA_reset(TIMA0);
-        DL_TimerA_enablePower(TIMA0);
+        _tim.init();
 
-        constexpr DL_TimerA_ClockConfig clkCfg{
-            .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
-        DL_TimerA_setClockConfig(TIMA0, &clkCfg);
+        // constexpr DL_TimerA_ClockConfig clkCfg{
+        //     .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
+        // DL_TimerA_setClockConfig(TIMA0, &clkCfg);
 
-        constexpr DL_TimerA_TimerConfig timerCfg = {
-            .timerMode = DL_TIMER_TIMER_MODE_PERIODIC_UP,
-            .period = period,
-            .startTimer = DL_TIMER_STOP,
-            .genIntermInt = DL_TIMER_INTERM_INT_DISABLED,
-            .counterVal = 0,
-        };
-        DL_TimerA_initTimerMode(TIMA0, &timerCfg);
+        _tim.setReloadVal(period);
 
-        DL_TimerA_enableInterrupt(TIMA0, DL_TIMERA_INTERRUPT_LOAD_EVENT);
-        DL_TimerA_enableClock(TIMA0);
-        DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
+        _tim.configure({.countMode = Timer<CFG_V>::CountMode::Up,
+                        .repeat = Timer<CFG_V>::Repeat::Yes,
+                        .ctrLoadControl = CFG_V.channel,
+                        .ctrAdvanceControl = CFG_V.channel,
+                        .ctrZeroControl = CFG_V.channel,
+                        .ctrValAfterEn = Timer<CFG_V>::CtrValAfterEn::Zero});
+
+        _tim.setCaptureCompareVal(CFG_V.channel, 0);
+        _tim.configureCaptureCompare({.channel = CFG_V.channel,
+                                      .advanceCondition = Timer<CFG_V>::AdvanceCondition::TimerClk,
+                                      .captureOrCompare = Timer<CFG_V>::CaptureOrCompare::Capture});
+
+        _tim.enableInterrupts(DL_TIMERA_INTERRUPT_LOAD_EVENT);
+        _tim.enableClock();
+        // DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
         NVIC_EnableIRQ(TIMA0_INT_IRQn);
-        DL_TimerA_startCounter(TIMA0);
+        _tim.start();
     }
 
     TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
 
     void isr()
     {
-        switch (DL_TimerA_getPendingInterrupt(TIMA0)) {
+        switch (_tim.getPendingInterrupts()) {
             case DL_TIMERG_IIDX_LOAD:
                 if (_cb) {
                     _cb();
@@ -62,6 +73,9 @@ class PeriodicTimer {
 
   private:
     CallbackType _cb;
+    Timer<CFG_V> _tim;
 };
+
+}    // namespace mspm0
 
 #endif    // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP

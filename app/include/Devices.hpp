@@ -9,7 +9,7 @@ namespace Devices {
 
 extern I2c i2c0;
 extern mspm0::CaptureTim<{.intLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> timG8;
-extern PeriodicTimer timA0;
+extern mspm0::PeriodicTimer<{.intLine = TIMA0_INT_IRQn, .channel = 0, .prescaler = 0xff}> timA0;
 
 }    // namespace Devices
 
