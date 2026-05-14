@@ -2,7 +2,7 @@ app_include_dirs = include_directories('include')
 
 app_sources = files(
     'src/main.cpp',
-    'src/ti_msp_dl_config.c',
+    'src/ti_msp_dl_config.cpp',
     'src/startup.cpp'
 )
 

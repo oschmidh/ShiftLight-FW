@@ -40,6 +40,8 @@
 
 #include "ti_msp_dl_config.h"
 
+#include "Devices.hpp"
+
 /*
  *  ======== SYSCFG_DL_init ========
  *  Perform any initialization needed before using any board APIs
@@ -62,26 +64,40 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
 
 SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 {
-    DL_SYSCTL_disableNRSTPin();
+    // DL_SYSCTL_disableNRSTPin();
+    Devices::sysCtl.disableNrstPin();
 
-    DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM1, IOMUX_PINCM1_PF_I2C0_SDA, DL_GPIO_INVERSION_DISABLE,
-                                                DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
-                                                DL_GPIO_WAKEUP_DISABLE);
-    DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM2, IOMUX_PINCM2_PF_I2C0_SCL, DL_GPIO_INVERSION_DISABLE,
-                                                DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
-                                                DL_GPIO_WAKEUP_DISABLE);
+    // DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM1, IOMUX_PINCM1_PF_I2C0_SDA, DL_GPIO_INVERSION_DISABLE,
+    //                                             DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+    //                                             DL_GPIO_WAKEUP_DISABLE);
 
-    DL_GPIO_enableHiZ(IOMUX_PINCM1);
-    DL_GPIO_enableHiZ(IOMUX_PINCM2);
+    // Devices::ioMux.getPin(IOMUX_PINCM1).configure({.function = IOMUX_PINCM1_PF_I2C0_SDA, .openDrain = true});
+    // Devices::ioMux.getPin(IOMUX_PINCM2).configure({.function = IOMUX_PINCM2_PF_I2C0_SCL, .openDrain = true});
 
-    DL_GPIO_initPeripheralInputFunction(IOMUX_PINCM28, IOMUX_PINCM28_PF_TIMG8_CCP1);
+    Devices::pin1.configure(
+        {.function = mspm0::IoMux::Pin1Functions::I2c0_Sda, .connected = true, .inputEnable = true, .openDrain = true});
+    Devices::pin2.configure(
+        {.function = mspm0::IoMux::Pin2Functions::I2c0_Scl, .connected = true, .inputEnable = true, .openDrain = true});
+
+    // DL_GPIO_initPeripheralInputFunctionFeatures(IOMUX_PINCM2, IOMUX_PINCM2_PF_I2C0_SCL, DL_GPIO_INVERSION_DISABLE,
+    //                                             DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+    //                                             DL_GPIO_WAKEUP_DISABLE);
+
+    // DL_GPIO_enableHiZ(IOMUX_PINCM1);
+    // DL_GPIO_enableHiZ(IOMUX_PINCM2);
+
+    // DL_GPIO_initPeripheralInputFunction(IOMUX_PINCM28, IOMUX_PINCM28_PF_TIMG8_CCP1);
+    Devices::pin28.configure(
+        {.function = mspm0::IoMux::Pin28Functions::TimG8_Ccp1, .connected = true, .inputEnable = true});
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
 {
-    DL_SYSCTL_setSYSOSCFreq(DL_SYSCTL_SYSOSC_FREQ_BASE);
-    DL_SYSCTL_setMCLKDivider(DL_SYSCTL_MCLK_DIVIDER_DISABLE);
+    // DL_SYSCTL_setSYSOSCFreq(DL_SYSCTL_SYSOSC_FREQ_BASE);
+    Devices::sysCtl.configureSysOsc({.freq = mspm0::SysControl::SysOscFreq::Base32Mhz});
+    // DL_SYSCTL_setMCLKDivider(DL_SYSCTL_MCLK_DIVIDER_DISABLE);
+    Devices::sysCtl.configureMclk({.divider = 0});
 
     // Low Power Mode is configured to be SLEEP0
-    DL_SYSCTL_setBORThreshold(DL_SYSCTL_BOR_THRESHOLD_LEVEL_0);
+    // DL_SYSCTL_setBORThreshold(DL_SYSCTL_BOR_THRESHOLD_LEVEL_0);
 }

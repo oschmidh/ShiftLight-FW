@@ -29,6 +29,14 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     }
 }
 
+static constexpr std::uintptr_t sysCtlAddr = 0x400af000;
+mspm0::SysControl Devices::sysCtl(sysCtlAddr);
+
+static constexpr std::uintptr_t ioMuxAddr = 0x40428000;
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1> Devices::pin1(ioMuxAddr);
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2> Devices::pin2(ioMuxAddr);
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28> Devices::pin28(ioMuxAddr);
+
 I2c Devices::i2c0;
 
 static constexpr std::uintptr_t timG8Addr = 0x40090000;
