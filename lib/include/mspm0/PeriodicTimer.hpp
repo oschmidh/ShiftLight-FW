@@ -1,14 +1,20 @@
-#ifndef LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
-#define LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#ifndef LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
+#define LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 
-#include "Timer.hpp"
+#include "BaseTimer.hpp"
 
 #include <limits>
 #include <cstdint>
 
 namespace mspm0 {
 
-template <TimerConfig CFG_V>
+struct PeriodicTimerConfig {
+    unsigned int intLine;
+    unsigned int channel;
+    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
+};
+
+template <PeriodicTimerConfig CFG_V>
 class PeriodicTimer {
   public:
     static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
@@ -29,7 +35,7 @@ class PeriodicTimer {
     {
         _cb = elapsedCallback;
 
-        _tim.init();
+        _tim.init(presc);
 
         // constexpr DL_TimerA_ClockConfig clkCfg{
         //     .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
@@ -37,17 +43,17 @@ class PeriodicTimer {
 
         _tim.setReloadVal(period);
 
-        _tim.configure({.countMode = Timer<CFG_V>::CountMode::Up,
-                        .repeat = Timer<CFG_V>::Repeat::Yes,
+        _tim.configure({.countMode = BaseTimer::CountMode::Up,
+                        .repeat = BaseTimer::Repeat::Yes,
                         .ctrLoadControl = CFG_V.channel,
                         .ctrAdvanceControl = CFG_V.channel,
                         .ctrZeroControl = CFG_V.channel,
-                        .ctrValAfterEn = Timer<CFG_V>::CtrValAfterEn::Zero});
+                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::Zero});
 
         _tim.setCaptureCompareVal(CFG_V.channel, 0);
         _tim.configureCaptureCompare({.channel = CFG_V.channel,
-                                      .advanceCondition = Timer<CFG_V>::AdvanceCondition::TimerClk,
-                                      .captureOrCompare = Timer<CFG_V>::CaptureOrCompare::Capture});
+                                      .advanceCondition = BaseTimer::AdvanceCondition::TimerClk,
+                                      .captureOrCompare = BaseTimer::CaptureOrCompare::Capture});
 
         _tim.enableInterrupts(DL_TIMERA_INTERRUPT_LOAD_EVENT);
         _tim.enableClock();
@@ -73,9 +79,9 @@ class PeriodicTimer {
 
   private:
     CallbackType _cb;
-    Timer<CFG_V> _tim;
+    BaseTimer _tim;
 };
 
 }    // namespace mspm0
 
-#endif    // LIB_INCLUDE_MSPM0_TIMA0CLOCK_HPP
+#endif    // LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP

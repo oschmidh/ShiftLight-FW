@@ -1,5 +1,5 @@
-#ifndef LIB_INCLUDE_MSPM0_TIMER_HPP
-#define LIB_INCLUDE_MSPM0_TIMER_HPP
+#ifndef LIB_INCLUDE_MSPM0_BASETIMER_HPP
+#define LIB_INCLUDE_MSPM0_BASETIMER_HPP
 
 #include "RegSet.hpp"
 
@@ -8,18 +8,11 @@
 
 namespace mspm0 {
 
-struct TimerConfig {
-    unsigned int intLine;
-    unsigned int channel;
-    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
-};
-
-template <TimerConfig CFG_V>    // TODO add base class to avoid template bloat
-class Timer {
+class BaseTimer {
   public:
     enum class CcpDirection { Input = 0, Output = 1 };
 
-    constexpr Timer(uintptr_t addr) noexcept
+    constexpr BaseTimer(uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
      , _intCtrl(addr, detail::regSet::intRegOffset)
@@ -27,13 +20,13 @@ class Timer {
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
     { }
 
-    void init() noexcept
+    void init(unsigned int prescaler) noexcept
     {
         _pwrCtrl.reset();
         _pwrCtrl.enable();
 
         _clkCtrl.setSource(detail::regSet::ClockControl::ClockSource::BusClk);
-        _commonRegs->CPS = CFG_V.prescaler;
+        _commonRegs->CPS = prescaler;
     }
 
     void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }
@@ -218,4 +211,4 @@ class Timer {
 
 }    // namespace mspm0
 
-#endif    // LIB_INCLUDE_MSPM0_TIMER_HPP
+#endif    // LIB_INCLUDE_MSPM0_BASETIMER_HPP

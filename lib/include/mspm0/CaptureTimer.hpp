@@ -1,7 +1,7 @@
 #ifndef LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 #define LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 
-#include "Timer.hpp"
+#include "BaseTimer.hpp"
 
 #include <chrono>
 #include <expected>
@@ -14,7 +14,13 @@ enum class CaptureTimerError {
     NotSynced,
 };
 
-template <TimerConfig CFG_V>
+struct CaptureTimerConfig {
+    unsigned int intLine;
+    unsigned int channel;
+    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
+};
+
+template <CaptureTimerConfig CFG_V>
 class CaptureTimer {
   public:
     using ErrorType = CaptureTimerError;
@@ -29,28 +35,28 @@ class CaptureTimer {
 
     void init() noexcept
     {
-        _tim.init();
+        _tim.init(CFG_V.prescaler);
 
         _tim.setReloadVal(0xffff);
         // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
-        _tim.configure({.countMode = Timer<CFG_V>::CountMode::Up,
-                        .repeat = Timer<CFG_V>::Repeat::Yes,
+        _tim.configure({.countMode = BaseTimer::CountMode::Up,
+                        .repeat = BaseTimer::Repeat::Yes,
                         .ctrLoadControl = CFG_V.channel,
                         .ctrAdvanceControl = CFG_V.channel,
                         .ctrZeroControl = CFG_V.channel,
-                        .ctrValAfterEn = Timer<CFG_V>::CtrValAfterEn::Zero});
+                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::Zero});
 
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
         // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
         _tim.configureCaptureCompare({.channel = CFG_V.channel,
-                                      .captureCondition = Timer<CFG_V>::CaptureCondition::FallingEdge,
-                                      .advanceCondition = Timer<CFG_V>::AdvanceCondition::TimerClk,
-                                      .loadCondition = Timer<CFG_V>::LoadCondition::None,
-                                      .zeroCondition = Timer<CFG_V>::ZeroCondition::None,
-                                      .captureOrCompare = Timer<CFG_V>::CaptureOrCompare::Capture});
+                                      .captureCondition = BaseTimer::CaptureCondition::FallingEdge,
+                                      .advanceCondition = BaseTimer::AdvanceCondition::TimerClk,
+                                      .loadCondition = BaseTimer::LoadCondition::None,
+                                      .zeroCondition = BaseTimer::ZeroCondition::None,
+                                      .captureOrCompare = BaseTimer::CaptureOrCompare::Capture});
 
-        _tim.configureCcpDirection(CFG_V.channel, Timer<CFG_V>::CcpDirection::Input);
+        _tim.configureCcpDirection(CFG_V.channel, BaseTimer::CcpDirection::Input);
 
         _tim.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
 
@@ -68,7 +74,7 @@ class CaptureTimer {
     std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
         if (!_synced) {
-            return std::unexpected(CaptureTimError::NotSynced);
+            return std::unexpected(CaptureTimerError::NotSynced);
         }
 
         return PeriodType{_tim.getCaptureCompareVal(CFG_V.channel)};
@@ -93,7 +99,7 @@ class CaptureTimer {
     }
 
   private:
-    Timer<CFG_V> _tim;
+    BaseTimer _tim;
     volatile bool _synced{};
 };
 
