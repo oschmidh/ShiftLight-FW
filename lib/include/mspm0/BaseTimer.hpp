@@ -10,12 +10,101 @@ namespace mspm0 {
 
 class BaseTimer {
   public:
+    class CcpChannel {
+      public:
+        enum class CaptureCondition : std::uint32_t {
+            None = 0,
+            RisingEdge = 1,
+            FallingEdge = 2,
+            BothEdges = 3,
+        };
+
+        enum class AdvanceCondition : std::uint32_t {
+            TimerClk = 0,
+            RisingEdge = 1,
+            FallingEdge = 2,
+            BothEdges = 3,
+            // reserved = 4
+            HighLevel = 5,
+        };
+
+        enum class LoadCondition : std::uint32_t {
+            None = 0,
+            RisingEdge = 1,
+            FallingEdge = 2,
+            BothEdges = 3,
+        };
+
+        enum class ZeroCondition : std::uint32_t {
+            None = 0,
+            RisingEdge = 1,
+            FallingEdge = 2,
+            BothEdges = 3,
+        };
+
+        enum class CaptureOrCompare : std::uint32_t {
+            Compare = 0,
+            Capture = 1,
+        };
+
+        struct CaptureCompareConfig {
+            CaptureCondition captureCondition = CaptureCondition::None;
+            AdvanceCondition advanceCondition = AdvanceCondition::TimerClk;
+            LoadCondition loadCondition = LoadCondition::None;
+            ZeroCondition zeroCondition = ZeroCondition::None;
+            CaptureOrCompare captureOrCompare = CaptureOrCompare::Compare;
+        };
+
+        constexpr CcpChannel(uintptr_t addr, unsigned int channelId) noexcept    // TODO ensure channelId < 4
+         : CC(new (reinterpret_cast<std::uint32_t*>(addr + ccOffset + channelId * sizeof(std::uint32_t))) std::uint32_t)
+         , CCCTL(new (reinterpret_cast<std::uint32_t*>(addr + ccctlOffset + channelId * sizeof(std::uint32_t)))
+                     std::uint32_t)
+         , OCTL(new (reinterpret_cast<std::uint32_t*>(addr + octlOffset + channelId * sizeof(std::uint32_t)))
+                    std::uint32_t)
+         , CCACT(new (reinterpret_cast<std::uint32_t*>(addr + ccactOffset + channelId * sizeof(std::uint32_t)))
+                     std::uint32_t)
+         , IFCTL(new (reinterpret_cast<std::uint32_t*>(addr + ifctlOffset + channelId * sizeof(std::uint32_t)))
+                     std::uint32_t)
+        { }
+
+        void configure(const CaptureCompareConfig& cfg) noexcept
+        {
+            *CCCTL = std::to_underlying(cfg.captureOrCompare) | (std::to_underlying(cfg.captureOrCompare) << 17u) |
+                     (std::to_underlying(cfg.zeroCondition) << 12u) | (std::to_underlying(cfg.loadCondition) << 8u) |
+                     (std::to_underlying(cfg.advanceCondition) << 4u) |
+                     (std::to_underlying(cfg.captureCondition));    // TODO
+                                                                    // magic
+                                                                    // offsets
+        }
+
+        std::uint32_t getValue() const noexcept { return *CC; }
+
+        void setValue(std::uint32_t val) noexcept { *CC = val; }
+
+      private:
+        static constexpr uintptr_t ccOffset = 0x1810;
+        volatile std::uint32_t* CC;
+
+        static constexpr uintptr_t ccctlOffset = 0x1830;
+        volatile std::uint32_t* CCCTL;
+
+        static constexpr uintptr_t octlOffset = 0x1850;
+        volatile std::uint32_t* OCTL;
+
+        static constexpr uintptr_t ccactOffset = 0x1870;
+        volatile std::uint32_t* CCACT;
+
+        static constexpr uintptr_t ifctlOffset = 0x1880;
+        volatile std::uint32_t* IFCTL;
+    };
+
     enum class CcpDirection { Input = 0, Output = 1 };
 
     constexpr BaseTimer(uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
      , _intCtrl(addr, detail::regSet::intRegOffset)
+     , _ccpChannels{{{addr, 0u}, {addr, 1u}, {addr, 2u}, {addr, 3u}}}
      , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
     { }
@@ -68,50 +157,6 @@ class BaseTimer {
         CtrValAfterEn ctrValAfterEn = CtrValAfterEn::LoadVal;
     };
 
-    enum class CaptureCondition : std::uint32_t {
-        None = 0,
-        RisingEdge = 1,
-        FallingEdge = 2,
-        BothEdges = 3,
-    };
-
-    enum class AdvanceCondition : std::uint32_t {
-        TimerClk = 0,
-        RisingEdge = 1,
-        FallingEdge = 2,
-        BothEdges = 3,
-        // reserved = 4
-        HighLevel = 5,
-    };
-
-    enum class LoadCondition : std::uint32_t {
-        None = 0,
-        RisingEdge = 1,
-        FallingEdge = 2,
-        BothEdges = 3,
-    };
-
-    enum class ZeroCondition : std::uint32_t {
-        None = 0,
-        RisingEdge = 1,
-        FallingEdge = 2,
-        BothEdges = 3,
-    };
-
-    enum class CaptureOrCompare : std::uint32_t {
-        Compare = 0,
-        Capture = 1,
-    };
-
-    struct CaptureCompareConfig {
-        unsigned int channel;
-        CaptureCondition captureCondition = CaptureCondition::None;
-        AdvanceCondition advanceCondition = AdvanceCondition::TimerClk;
-        LoadCondition loadCondition = LoadCondition::None;
-        ZeroCondition zeroCondition = ZeroCondition::None;
-        CaptureOrCompare captureOrCompare = CaptureOrCompare::Compare;
-    };
-
     void configure(const Config& cfg) noexcept
     {
         _ctrRegs->CTRCTL = (std::to_underlying(cfg.ctrValAfterEn) << 28u) | (cfg.phaseLoadEn << 24u) |
@@ -121,17 +166,6 @@ class BaseTimer {
                                                                       // offsets
     }
 
-    void configureCaptureCompare(const CaptureCompareConfig& cfg) noexcept
-    {
-        // TODO verify channel in range?
-        _ctrRegs->CCCTL[cfg.channel] =
-            std::to_underlying(cfg.captureOrCompare) | (std::to_underlying(cfg.captureOrCompare) << 17u) |
-            (std::to_underlying(cfg.zeroCondition) << 12u) | (std::to_underlying(cfg.loadCondition) << 8u) |
-            (std::to_underlying(cfg.advanceCondition) << 4u) | (std::to_underlying(cfg.captureCondition));    // TODO
-                                                                                                              // magic
-                                                                                                              // offsets
-    }
-
     void configureCcpDirection(unsigned int channel, CcpDirection dir) noexcept
     {
         // TODO verify channel in range?
@@ -139,12 +173,8 @@ class BaseTimer {
         _commonRegs->CCPD |= std::to_underlying(dir) << channel;
     }
 
-    std::uint32_t getCaptureCompareVal(unsigned int channel) const noexcept { return _ctrRegs->CC[channel]; }
-
-    void setCaptureCompareVal(unsigned int channel, std::uint32_t value) const noexcept
-    {
-        _ctrRegs->CC[channel] = value;
-    }
+    const CcpChannel& getCcpChannel(unsigned int channel) const noexcept { return _ccpChannels[channel]; }
+    CcpChannel& getCcpChannel(unsigned int channel) noexcept { return _ccpChannels[channel]; }
 
     void setCounter(std::uint32_t val) noexcept { _ctrRegs->CTR = val; }
 
@@ -152,10 +182,7 @@ class BaseTimer {
 
     void disableClock() noexcept { _commonRegs->CCLKCTL &= ~1; }
 
-    void enableInterrupts(std::uint32_t mask) noexcept
-    {
-        _intCtrl.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
-    }
+    void enableInterrupts(std::uint32_t mask) noexcept { _intCtrl.enableInterrupts(mask); }
 
     std::uint32_t getPendingInterrupts() const noexcept { return _intCtrl.getPending(); }
 
@@ -185,20 +212,13 @@ class BaseTimer {
         std::uint32_t CTR;
         std::uint32_t CTRCTL;
         std::uint32_t LOAD;
-        std::uint32_t reserved_0;
-        std::uint32_t CC[6];
-        std::uint32_t reserved_1[2];
-        std::uint32_t CCCTL[6];
-        std::uint32_t reserved_2[2];
-        std::uint32_t OCTL[4];
-        std::uint32_t reserved_3[4];
-        std::uint32_t CCACT[4];
-        std::uint32_t IFCTL[4];
     };
 
     detail::regSet::PowerControl _pwrCtrl;
     detail::regSet::ClockControl _clkCtrl;
     detail::regSet::InterruptControl _intCtrl;
+
+    std::array<CcpChannel, 4> _ccpChannels;
 
     static constexpr uintptr_t commonRegOffset = 0x1100;
     static constexpr uintptr_t ctrRegOffset = 0x1800;

@@ -50,10 +50,10 @@ class PeriodicTimer {
                         .ctrZeroControl = CFG_V.channel,
                         .ctrValAfterEn = BaseTimer::CtrValAfterEn::Zero});
 
-        _tim.setCaptureCompareVal(CFG_V.channel, 0);
-        _tim.configureCaptureCompare({.channel = CFG_V.channel,
-                                      .advanceCondition = BaseTimer::AdvanceCondition::TimerClk,
-                                      .captureOrCompare = BaseTimer::CaptureOrCompare::Capture});
+        _tim.getCcpChannel(CFG_V.channel).setValue(0);
+        _tim.getCcpChannel(CFG_V.channel)
+            .configure({.advanceCondition = BaseTimer::CcpChannel::AdvanceCondition::TimerClk,
+                        .captureOrCompare = BaseTimer::CcpChannel::CaptureOrCompare::Capture});
 
         _tim.enableInterrupts(DL_TIMERA_INTERRUPT_LOAD_EVENT);
         _tim.enableClock();

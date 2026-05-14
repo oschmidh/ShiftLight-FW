@@ -49,12 +49,12 @@ class CaptureTimer {
 
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
         // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
-        _tim.configureCaptureCompare({.channel = CFG_V.channel,
-                                      .captureCondition = BaseTimer::CaptureCondition::FallingEdge,
-                                      .advanceCondition = BaseTimer::AdvanceCondition::TimerClk,
-                                      .loadCondition = BaseTimer::LoadCondition::None,
-                                      .zeroCondition = BaseTimer::ZeroCondition::None,
-                                      .captureOrCompare = BaseTimer::CaptureOrCompare::Capture});
+        _tim.getCcpChannel(CFG_V.channel)
+            .configure({.captureCondition = BaseTimer::CcpChannel::CaptureCondition::FallingEdge,
+                        .advanceCondition = BaseTimer::CcpChannel::AdvanceCondition::TimerClk,
+                        .loadCondition = BaseTimer::CcpChannel::LoadCondition::None,
+                        .zeroCondition = BaseTimer::CcpChannel::ZeroCondition::None,
+                        .captureOrCompare = BaseTimer::CcpChannel::CaptureOrCompare::Capture});
 
         _tim.configureCcpDirection(CFG_V.channel, BaseTimer::CcpDirection::Input);
 
@@ -77,7 +77,7 @@ class CaptureTimer {
             return std::unexpected(CaptureTimerError::NotSynced);
         }
 
-        return PeriodType{_tim.getCaptureCompareVal(CFG_V.channel)};
+        return PeriodType{_tim.getCcpChannel(CFG_V.channel).getValue()};
     }
 
     void isr() noexcept
