@@ -85,7 +85,9 @@ class InterruptControl {
 
     constexpr void enableInterrupts(std::uint32_t mask) const noexcept { _regs->IMASK |= mask; }
     constexpr void disableInterrupts(std::uint32_t mask) const noexcept { _regs->IMASK &= ~mask; }
-    constexpr std::uint32_t getPending() const noexcept { return _regs->IIDX; }
+
+    // returns next pending interrupt, sorted by prio defined in iidx reg (1 = highest prio)
+    constexpr std::uint32_t getNextPending() const noexcept { return _regs->IIDX; }
 
   private:
     struct Registers {

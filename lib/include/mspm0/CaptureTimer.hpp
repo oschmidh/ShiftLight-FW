@@ -58,7 +58,7 @@ class CaptureTimer {
 
         _tim.configureCcpDirection(CFG_V.channel, BaseTimer::CcpDirection::Input);
 
-        _tim.enableInterrupts(DL_TIMERG_INTERRUPT_CC1_UP_EVENT | DL_TIMERG_INTERRUPT_OVERFLOW_EVENT);
+        _tim.enableInterrupts(BaseTimer::Interrupts::captureCompareUp[CFG_V.channel], BaseTimer::Interrupts::Overflow);
 
         _tim.enableClock();
     }
@@ -82,13 +82,18 @@ class CaptureTimer {
 
     void isr() noexcept
     {
-        switch (_tim.getPendingInterrupts()) {
-            case DL_TIMERG_IIDX_CC1_UP:
+        const auto pending = _tim.getNextPendingInterrupt();
+        if (!pending) {
+            return;
+        }
+
+        switch (*pending) {
+            case BaseTimer::Interrupts::captureCompareUp[CFG_V.channel]:
                 _synced = true;
                 _tim.setCounter(0);    // Manual reload, workaround for ERRATA TIMER_ERR_01
                 // _callback(PeriodType{_ctrRegs->CC[CFG_V.channel]}); // TODO implement
                 break;
-            case DL_TIMERG_IIDX_OVERFLOW:
+            case BaseTimer::Interrupts::Overflow:
                 /* If Timer reaches overflows then no PWM signal is detected and it
                  * requires re-synchronization
                  */

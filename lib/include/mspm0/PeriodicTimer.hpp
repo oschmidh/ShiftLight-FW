@@ -55,11 +55,11 @@ class PeriodicTimer {
             .configure({.advanceCondition = BaseTimer::CcpChannel::AdvanceCondition::TimerClk,
                         .captureOrCompare = BaseTimer::CcpChannel::CaptureOrCompare::Capture});
 
-        _tim.enableInterrupts(DL_TIMERA_INTERRUPT_LOAD_EVENT);
+        _tim.enableInterrupts(BaseTimer::Interrupts::Load);
         _tim.enableClock();
         // DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
-        NVIC_EnableIRQ(TIMA0_INT_IRQn);
+        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.intLine));
         _tim.start();
     }
 
@@ -67,8 +67,13 @@ class PeriodicTimer {
 
     void isr()
     {
-        switch (_tim.getPendingInterrupts()) {
-            case DL_TIMERG_IIDX_LOAD:
+        const auto pending = _tim.getNextPendingInterrupt();
+        if (!pending) {
+            return;
+        }
+
+        switch (*pending) {
+            case BaseTimer::Interrupts::Load:
                 if (_cb) {
                     _cb();
                 }

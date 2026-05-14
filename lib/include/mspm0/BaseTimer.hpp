@@ -4,6 +4,7 @@
 #include "RegSet.hpp"
 
 #include <utility>
+#include <optional>
 #include <cstdint>
 
 namespace mspm0 {
@@ -182,9 +183,54 @@ class BaseTimer {
 
     void disableClock() noexcept { _commonRegs->CCLKCTL &= ~1; }
 
-    void enableInterrupts(std::uint32_t mask) noexcept { _intCtrl.enableInterrupts(mask); }
+    struct Interrupts {
+        enum class InterruptVals : unsigned int {
+            Zero = 0,
+            Load = 1,
+            CaptureCompareDown0 = 4,
+            CaptureCompareDown1 = 5,
+            CaptureCompareDown2 = 6,
+            CaptureCompareDown3 = 7,
+            CaptureCompareUp0 = 8,
+            CaptureCompareUp1 = 9,
+            CaptureCompareUp2 = 10,
+            CaptureCompareUp3 = 11,
+            CaptureCompareUp4 = 12,
+            CaptureCompareUp5 = 13,
+            Fault = 24,
+            Overflow = 25,
+            RepeatCntZero = 26,
+            DirectionChange = 27,
+            Qeierr = 28,
+        };
 
-    std::uint32_t getPendingInterrupts() const noexcept { return _intCtrl.getPending(); }
+        using enum InterruptVals;
+
+        static constexpr std::array captureCompareUp{
+            InterruptVals::CaptureCompareUp0, InterruptVals::CaptureCompareUp1, InterruptVals::CaptureCompareUp2,
+            InterruptVals::CaptureCompareUp3, InterruptVals::CaptureCompareUp4, InterruptVals::CaptureCompareUp5};
+        static constexpr std::array captureCompareDown{
+            InterruptVals::CaptureCompareDown0, InterruptVals::CaptureCompareDown1, InterruptVals::CaptureCompareDown2,
+            InterruptVals::CaptureCompareDown3};
+    };
+
+    template <typename... Ts>
+        requires(std::is_same_v<Ts, Interrupts::InterruptVals> && ...)
+    void enableInterrupts(Ts... interrupts) noexcept
+    {
+        const std::uint32_t mask = ((1u << std::to_underlying(interrupts)) | ...);
+        _intCtrl.enableInterrupts(mask);
+    }
+
+    std::optional<Interrupts::InterruptVals> getNextPendingInterrupt() const noexcept
+    {
+        const std::uint32_t nextIidx = _intCtrl.getNextPending();
+        if (nextIidx == 0) {
+            return std::nullopt;
+        }
+
+        return std::make_optional(static_cast<Interrupts::InterruptVals>(nextIidx - 1));
+    }
 
     void start() noexcept
     {
