@@ -32,7 +32,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 I2c Devices::i2c0;
 
 static constexpr std::uintptr_t timG8Addr = 0x40090000;
-mspm0::CaptureTim<{.intLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> Devices::timG8(timG8Addr);
+mspm0::CaptureTimer<{.intLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> Devices::timG8(timG8Addr);
 
 static constexpr std::uintptr_t timA0Addr = 0x40860000;
 mspm0::PeriodicTimer<{.intLine = TIMA0_INT_IRQn, .channel = 0, .prescaler = 0xff}> Devices::timA0(timA0Addr);

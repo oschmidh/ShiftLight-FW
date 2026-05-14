@@ -1,5 +1,5 @@
-#ifndef LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
-#define LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
+#ifndef LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
+#define LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 
 #include "Timer.hpp"
 
@@ -9,21 +9,21 @@
 
 namespace mspm0 {
 
-enum class CaptureTimError {
+enum class CaptureTimerError {
     NoError,
     NotSynced,
 };
 
 template <TimerConfig CFG_V>
-class CaptureTim {
+class CaptureTimer {
   public:
-    using ErrorType = CaptureTimError;
+    using ErrorType = CaptureTimerError;
 
     static constexpr auto intLine = std::integral_constant<unsigned int, CFG_V.intLine>{};
 
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTim(uintptr_t addr) noexcept
+    constexpr CaptureTimer(uintptr_t addr) noexcept
      : _tim(addr)
     { }
 
@@ -99,4 +99,4 @@ class CaptureTim {
 
 }    // namespace mspm0
 
-#endif    // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP
+#endif    // LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
