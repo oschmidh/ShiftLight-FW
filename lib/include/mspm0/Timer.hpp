@@ -1,5 +1,5 @@
-#ifndef LIB_INCLUDE_MSPM0_BASETIMER_HPP
-#define LIB_INCLUDE_MSPM0_BASETIMER_HPP
+#ifndef LIB_INCLUDE_MSPM0_TIMER_HPP
+#define LIB_INCLUDE_MSPM0_TIMER_HPP
 
 #include "RegSet.hpp"
 
@@ -9,7 +9,7 @@
 
 namespace mspm0 {
 
-class BaseTimer {
+class Timer {
   public:
     class CcpChannel {
       public:
@@ -99,7 +99,7 @@ class BaseTimer {
 
     enum class CcpDirection { Input = 0, Output = 1 };
 
-    constexpr BaseTimer(uintptr_t addr) noexcept
+    constexpr Timer(uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
      , _intCtrl(addr, detail::regSet::intRegOffset)
@@ -275,4 +275,4 @@ class BaseTimer {
 
 }    // namespace mspm0
 
-#endif    // LIB_INCLUDE_MSPM0_BASETIMER_HPP
+#endif    // LIB_INCLUDE_MSPM0_TIMER_HPP

@@ -1,7 +1,7 @@
 #ifndef LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 #define LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 
-#include "BaseTimer.hpp"
+#include "Timer.hpp"
 
 #include <limits>
 #include <cstdint>
@@ -43,19 +43,19 @@ class PeriodicTimer {
 
         _tim.setReloadVal(period);
 
-        _tim.configure({.countMode = BaseTimer::CountMode::Up,
-                        .repeat = BaseTimer::Repeat::Yes,
+        _tim.configure({.countMode = Timer::CountMode::Up,
+                        .repeat = Timer::Repeat::Yes,
                         .ctrLoadControl = CFG_V.channel,
                         .ctrAdvanceControl = CFG_V.channel,
                         .ctrZeroControl = CFG_V.channel,
-                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::Zero});
+                        .ctrValAfterEn = Timer::CtrValAfterEn::Zero});
 
         _tim.getCcpChannel(CFG_V.channel).setValue(0);
         _tim.getCcpChannel(CFG_V.channel)
-            .configure({.advanceCondition = BaseTimer::CcpChannel::AdvanceCondition::TimerClk,
-                        .captureOrCompare = BaseTimer::CcpChannel::CaptureOrCompare::Capture});
+            .configure({.advanceCondition = Timer::CcpChannel::AdvanceCondition::TimerClk,
+                        .captureOrCompare = Timer::CcpChannel::CaptureOrCompare::Capture});
 
-        _tim.enableInterrupts(BaseTimer::Interrupts::Load);
+        _tim.enableInterrupts(Timer::Interrupts::Load);
         _tim.enableClock();
         // DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
@@ -73,7 +73,7 @@ class PeriodicTimer {
         }
 
         switch (*pending) {
-            case BaseTimer::Interrupts::Load:
+            case Timer::Interrupts::Load:
                 if (_cb) {
                     _cb();
                 }
@@ -84,7 +84,7 @@ class PeriodicTimer {
 
   private:
     CallbackType _cb;
-    BaseTimer _tim;
+    Timer _tim;
 };
 
 }    // namespace mspm0

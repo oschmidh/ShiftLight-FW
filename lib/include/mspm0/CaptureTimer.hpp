@@ -1,7 +1,7 @@
 #ifndef LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 #define LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 
-#include "BaseTimer.hpp"
+#include "Timer.hpp"
 
 #include <chrono>
 #include <expected>
@@ -40,25 +40,25 @@ class CaptureTimer {
         _tim.setReloadVal(0xffff);
         // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
-        _tim.configure({.countMode = BaseTimer::CountMode::Up,
-                        .repeat = BaseTimer::Repeat::Yes,
+        _tim.configure({.countMode = Timer::CountMode::Up,
+                        .repeat = Timer::Repeat::Yes,
                         .ctrLoadControl = CFG_V.channel,
                         .ctrAdvanceControl = CFG_V.channel,
                         .ctrZeroControl = CFG_V.channel,
-                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::LoadVal});
+                        .ctrValAfterEn = Timer::CtrValAfterEn::LoadVal});
 
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
         // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)
         _tim.getCcpChannel(CFG_V.channel)
-            .configure({.captureCondition = BaseTimer::CcpChannel::CaptureCondition::FallingEdge,
-                        .advanceCondition = BaseTimer::CcpChannel::AdvanceCondition::TimerClk,
-                        .loadCondition = BaseTimer::CcpChannel::LoadCondition::None,
-                        .zeroCondition = BaseTimer::CcpChannel::ZeroCondition::None,
-                        .captureOrCompare = BaseTimer::CcpChannel::CaptureOrCompare::Capture});
+            .configure({.captureCondition = Timer::CcpChannel::CaptureCondition::FallingEdge,
+                        .advanceCondition = Timer::CcpChannel::AdvanceCondition::TimerClk,
+                        .loadCondition = Timer::CcpChannel::LoadCondition::None,
+                        .zeroCondition = Timer::CcpChannel::ZeroCondition::None,
+                        .captureOrCompare = Timer::CcpChannel::CaptureOrCompare::Capture});
 
-        _tim.configureCcpDirection(CFG_V.channel, BaseTimer::CcpDirection::Input);
+        _tim.configureCcpDirection(CFG_V.channel, Timer::CcpDirection::Input);
 
-        _tim.enableInterrupts(BaseTimer::Interrupts::captureCompareUp[CFG_V.channel], BaseTimer::Interrupts::Overflow);
+        _tim.enableInterrupts(Timer::Interrupts::captureCompareUp[CFG_V.channel], Timer::Interrupts::Overflow);
 
         _tim.enableClock();
     }
@@ -88,12 +88,12 @@ class CaptureTimer {
         }
 
         switch (*pending) {
-            case BaseTimer::Interrupts::captureCompareUp[CFG_V.channel]:
+            case Timer::Interrupts::captureCompareUp[CFG_V.channel]:
                 _synced = true;
                 _tim.setCounter(0);    // Manual reload, workaround for ERRATA TIMER_ERR_01
                 // _callback(PeriodType{_ctrRegs->CC[CFG_V.channel]}); // TODO implement
                 break;
-            case BaseTimer::Interrupts::Overflow:
+            case Timer::Interrupts::Overflow:
                 /* If Timer reaches overflows then no PWM signal is detected and it
                  * requires re-synchronization
                  */
@@ -104,7 +104,7 @@ class CaptureTimer {
     }
 
   private:
-    BaseTimer _tim;
+    Timer _tim;
     volatile bool _synced{};
 };
 
