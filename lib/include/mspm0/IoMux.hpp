@@ -35,23 +35,14 @@ class Pin {
         bool openDrain = false;
     };
 
-    constexpr Pin(uintptr_t addr) noexcept
-     : PINCM(
-           //    new (reinterpret_cast<std::uint32_t*>(addr + pinCmOffset + detail::PinCmOffset<PIN_V>::value))
-           //    std::uint32_t)
-           new (reinterpret_cast<std::uint32_t*>(
-               addr + pinCmOffset + std::to_underlying(PIN_V) * sizeof(std::uint32_t))) std::uint32_t)
-    { }
-
-    void configure(Config cfg) const noexcept
+    void configure(Config cfg) noexcept
     {
-        *PINCM = (cfg.openDrain << 25u) | (cfg.inputEnable << 18u) | (cfg.connected << 7u) |
-                 std::to_underlying(cfg.function);
+        PINCM = (cfg.openDrain << 25u) | (cfg.inputEnable << 18u) | (cfg.connected << 7u) |
+                std::to_underlying(cfg.function);
     }
 
   private:
-    static constexpr uintptr_t pinCmOffset = 0x4;    // TODO rename?
-    volatile std::uint32_t* PINCM;
+    volatile std::uint32_t PINCM;
 };
 
 enum class Pin1Functions : std::uint32_t {
@@ -79,20 +70,30 @@ enum class Pins : std::uint32_t {
     PinCm28 = 27,
 };
 
+namespace detail {
+
 template <>
-struct detail::AlternatePinFunctions<Pins::PinCm1> {
+struct AlternatePinFunctions<Pins::PinCm1> {
     using Type = Pin1Functions;
 };
 
 template <>
-struct detail::AlternatePinFunctions<Pins::PinCm2> {
+struct AlternatePinFunctions<Pins::PinCm2> {
     using Type = Pin2Functions;
 };
 
 template <>
-struct detail::AlternatePinFunctions<Pins::PinCm28> {
+struct AlternatePinFunctions<Pins::PinCm28> {
     using Type = Pin28Functions;
 };
+
+template <Pins PIN_V>
+struct AddressOffset {
+    static constexpr std::uintptr_t pinCmOffset = 0x4;
+    static constexpr std::uintptr_t value = pinCmOffset + std::to_underlying(PIN_V) * sizeof(Pin<PIN_V>);
+};
+
+}    // namespace detail
 
 // template <>
 // struct detail::PinCmOffset<Pins::PinCm1> {

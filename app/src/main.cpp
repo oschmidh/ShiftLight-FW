@@ -37,11 +37,11 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
     Devices::sysCtl.disableNrstPin();
 
-    Devices::pin1.configure(
+    Devices::pin1->configure(
         {.function = mspm0::IoMux::Pin1Functions::I2c0_Sda, .connected = true, .inputEnable = true, .openDrain = true});
-    Devices::pin2.configure(
+    Devices::pin2->configure(
         {.function = mspm0::IoMux::Pin2Functions::I2c0_Scl, .connected = true, .inputEnable = true, .openDrain = true});
-    Devices::pin28.configure(
+    Devices::pin28->configure(
         {.function = mspm0::IoMux::Pin28Functions::TimG8_Ccp1, .connected = true, .inputEnable = true});
 
     Devices::sysCtl.configureSysOsc({.freq = mspm0::SysControl::SysOscFreq::Base32Mhz});

@@ -12,9 +12,9 @@ namespace Devices {
 
 extern mspm0::SysControl sysCtl;
 
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1> pin1;
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2> pin2;
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28> pin28;
+extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>* pin1;
+extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>* pin2;
+extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28>* pin28;
 
 extern mspm0::Gpio gpioA;
 extern I2c i2c0;
