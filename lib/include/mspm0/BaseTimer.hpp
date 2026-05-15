@@ -110,7 +110,7 @@ class BaseTimer {
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
     { }
 
-    void init(unsigned int prescaler) noexcept
+    void init(std::uint8_t prescaler) noexcept
     {
         _pwrCtrl.reset();
         _pwrCtrl.enable();
@@ -119,7 +119,7 @@ class BaseTimer {
         _commonRegs->CPS = prescaler;
     }
 
-    void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }
+    void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }    // TODO should be uint16?
 
     // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
@@ -177,7 +177,7 @@ class BaseTimer {
     const CcpChannel& getCcpChannel(unsigned int channel) const noexcept { return _ccpChannels[channel]; }
     CcpChannel& getCcpChannel(unsigned int channel) noexcept { return _ccpChannels[channel]; }
 
-    void setCounter(std::uint32_t val) noexcept { _ctrRegs->CTR = val; }
+    void setCounter(std::uint16_t val) noexcept { _ctrRegs->CTR = val; }
 
     void enableClock() noexcept { _commonRegs->CCLKCTL |= 1; }
 
