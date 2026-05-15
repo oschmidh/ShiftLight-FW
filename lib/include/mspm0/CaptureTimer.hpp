@@ -45,7 +45,7 @@ class CaptureTimer {
                         .ctrLoadControl = CFG_V.channel,
                         .ctrAdvanceControl = CFG_V.channel,
                         .ctrZeroControl = CFG_V.channel,
-                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::Zero});
+                        .ctrValAfterEn = BaseTimer::CtrValAfterEn::LoadVal});
 
         // automatic load must be disabled, because the load seems to happen before the captured value is transferred.
         // Therefore the capture register would always contain the load value (see ERRATA TIMER_ERR_01)

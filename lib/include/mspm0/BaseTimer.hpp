@@ -70,12 +70,10 @@ class BaseTimer {
 
         void configure(const CaptureCompareConfig& cfg) noexcept
         {
-            *CCCTL = std::to_underlying(cfg.captureOrCompare) | (std::to_underlying(cfg.captureOrCompare) << 17u) |
+            *CCCTL = (std::to_underlying(cfg.captureOrCompare) << 17u) |
                      (std::to_underlying(cfg.zeroCondition) << 12u) | (std::to_underlying(cfg.loadCondition) << 8u) |
                      (std::to_underlying(cfg.advanceCondition) << 4u) |
-                     (std::to_underlying(cfg.captureCondition));    // TODO
-                                                                    // magic
-                                                                    // offsets
+                     std::to_underlying(cfg.captureCondition);    // TODO magic offsets
         }
 
         std::uint32_t getValue() const noexcept { return *CC; }
