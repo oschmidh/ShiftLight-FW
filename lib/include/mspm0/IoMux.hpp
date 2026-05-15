@@ -39,7 +39,8 @@ class Pin {
      : PINCM(
            //    new (reinterpret_cast<std::uint32_t*>(addr + pinCmOffset + detail::PinCmOffset<PIN_V>::value))
            //    std::uint32_t)
-           new (reinterpret_cast<std::uint32_t*>(addr + pinCmOffset + std::to_underlying(PIN_V))) std::uint32_t)
+           new (reinterpret_cast<std::uint32_t*>(
+               addr + pinCmOffset + std::to_underlying(PIN_V) * sizeof(std::uint32_t))) std::uint32_t)
     { }
 
     void configure(Config cfg) const noexcept
@@ -72,7 +73,7 @@ enum class Pin28Functions : std::uint32_t {
 // static constexpr Pin<Cm1PinFunctions> cm1{0};
 // static constexpr Pin<Cm2PinFunctions> cm2{1};
 
-enum class Pins {
+enum class Pins : std::uint32_t {
     PinCm1 = 0,
     PinCm2 = 1,
     PinCm28 = 27,
