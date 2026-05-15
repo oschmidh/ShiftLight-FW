@@ -29,25 +29,23 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     }
 }
 
-static constexpr std::uintptr_t sysCtlAddr = 0x400af000;
-mspm0::SysControl Devices::sysCtl(sysCtlAddr);
-
-static constexpr std::uintptr_t ioMuxAddr = 0x40428000;
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1> Devices::pin1(ioMuxAddr);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2> Devices::pin2(ioMuxAddr);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28> Devices::pin28(ioMuxAddr);
-
-I2c Devices::i2c0;
-
-static constexpr std::uintptr_t timG8Addr = 0x40090000;
-mspm0::CaptureTimer<{.intLine = TIMG8_INT_IRQn, .channel = 1, .prescaler = 0xff}> Devices::timG8(timG8Addr);
-
-static constexpr std::uintptr_t timA0Addr = 0x40860000;
-mspm0::PeriodicTimer<{.intLine = TIMA0_INT_IRQn, .channel = 0, .prescaler = 0xff}> Devices::timA0(timA0Addr);
-
 [[noreturn]] int main()
 {
-    SYSCFG_DL_init();
+    Devices::gpioA.init();
+
+    delay_cycles(POWER_STARTUP_DELAY);    // TODO ??
+
+    Devices::sysCtl.disableNrstPin();
+
+    Devices::pin1.configure(
+        {.function = mspm0::IoMux::Pin1Functions::I2c0_Sda, .connected = true, .inputEnable = true, .openDrain = true});
+    Devices::pin2.configure(
+        {.function = mspm0::IoMux::Pin2Functions::I2c0_Scl, .connected = true, .inputEnable = true, .openDrain = true});
+    Devices::pin28.configure(
+        {.function = mspm0::IoMux::Pin28Functions::TimG8_Ccp1, .connected = true, .inputEnable = true});
+
+    Devices::sysCtl.configureSysOsc({.freq = mspm0::SysControl::SysOscFreq::Base32Mhz});
+    Devices::sysCtl.configureMclk({.divider = 0});
 
     System::SteadyClock sysTime{};
     sysTime.init();
