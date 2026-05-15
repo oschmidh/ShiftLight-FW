@@ -55,7 +55,7 @@ class SysControl {
     struct Registers {    // TODO
         std::uint32_t SysOscCfg;
         std::uint32_t MclkCfg;
-        std::uint32_t placeholder_0[1];    // TODO fix size
+        std::uint32_t placeholder_0[132];
         // std::uint32_t SystemCfg;
         // std::uint32_t BeepCfg;
         // std::uint32_t WriteLock;
@@ -86,7 +86,7 @@ class SysControl {
         // std::uint32_t ICLR;
     };
 
-    static constexpr uintptr_t regOffset = 0x800;    // TODO
+    static constexpr uintptr_t regOffset = 0x1100;
 
     volatile Registers* const _regs;
 };
