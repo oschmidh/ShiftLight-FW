@@ -4,6 +4,8 @@
 // #include <ti/driverlib/driverlib.h>
 #include "ti_msp_dl_config.h"
 
+#include "function_ref.hpp"
+
 #include <chrono>
 #include <expected>
 #include <cstdint>
@@ -21,7 +23,12 @@ class CaptureTimG {
     static constexpr unsigned int presc = 255;            // TODO hardcoded here
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTimG() noexcept { }
+    using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
+    using CaptureCallbackType = tl::function_ref<void(PeriodType)>;
+
+    constexpr CaptureTimG(CaptureCallbackType captureCb) noexcept
+     : _captureCb(captureCb)
+    { }
 
     void init() noexcept
     {
@@ -60,8 +67,6 @@ class CaptureTimG {
         DL_TimerG_startCounter(TIMG8);
     }
 
-    using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(presc + 1), timClk>>;
-
     std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
         if (!_synced) {
@@ -76,6 +81,7 @@ class CaptureTimG {
         switch (DL_TimerG_getPendingInterrupt(TIMG8)) {
             case DL_TIMERG_IIDX_CC1_UP:
                 _synced = true;
+                _captureCb(PeriodType{DL_TimerG_getCaptureCompareValue(TIMG8, DL_TIMER_CC_1_INDEX)});
                 /* Manual reload is needed to workaround timer capture limitation */
                 DL_TimerG_setTimerCount(TIMG8, 0);
                 break;
@@ -91,6 +97,7 @@ class CaptureTimG {
 
   private:
     volatile bool _synced{};
+    CaptureCallbackType _captureCb;
 };
 
 #endif    // LIB_INCLUDE_MSPM0_CAPTURETIM_HPP

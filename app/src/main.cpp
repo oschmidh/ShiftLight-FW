@@ -6,6 +6,7 @@
 
 #include "ti_msp_dl_config.h"
 
+#include <variant>
 #include <cstdint>
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
@@ -27,10 +28,136 @@ void startupAnimation(auto& leds) noexcept
         leds.show();
         System::busyWait(80ms);
     }
+
+    System::busyWait(1250ms);
+
+    for (unsigned int i = 0; i < numLeds; ++i) {
+        leds.setLed(i, true);
+        leds.show();
+        System::busyWait(80ms);
+    }
+
+    System::busyWait(1250ms);
+
+    for (int i = numLeds - 1; i >= 0; --i) {
+        leds.setLed(i, false);
+        leds.show();
+        System::busyWait(80ms);
+    }
 }
 
+namespace Event {
+
+struct TimerCapture {
+    CaptureTimG::PeriodType period;
+};
+
+// struct CaptureTimeout { };
+
+}    // namespace Event
+
+// using Events = std::variant<Event::TimerCapture, Event::CaptureTimeout>;
+using Events = std::variant<Event::TimerCapture>;
+
+// TODO locking policy
+
+// template <typename T, std::size_t N>
+// // TODO equires N = power of 2 and N < 2^sizeof(std::size_t)
+// class Ringbuffer {
+//   public:
+//     constexpr bool isEmpty() volatile const noexcept
+//     {
+//         // TODO lock interrupts here
+//         return _tail == _head;
+//     }
+
+//     constexpr bool isFull() volatile const noexcept
+//     {
+//         // TODO lock interrupts here
+//         return size() == _buf.size();
+//     }
+
+//     constexpr std::size_t size() volatile const noexcept { return _head - _tail; }
+
+//     constexpr bool push(T&& b) volatile noexcept
+//     {
+//         if (isFull()) {
+//             return false;
+//         }
+//         _buf[mask(_head++)] = b;
+//         return true;
+//     }
+
+//     constexpr std::optional<T> pull() volatile noexcept
+//     {
+//         if (isEmpty()) {
+//             return std::nullopt;
+//         }
+//         return _buf[mask(_tail++)];
+//     }
+
+//   private:
+//     static constexpr std::size_t mask(std::size_t val) noexcept { return val & (N - 1); }
+
+//     std::size_t _tail{};
+//     std::size_t _head{};
+//     std::array<T, N> _buf;
+// };
+
+template <typename T, std::size_t N>
+// TODO equires N = power of 2 and N < 2^sizeof(std::size_t)
+class Ringbuffer {
+  public:
+    constexpr bool isEmpty() const noexcept
+    {
+        // TODO lock interrupts here
+        return _tail == _head;
+    }
+
+    constexpr bool isFull() const noexcept
+    {
+        // TODO lock interrupts here
+        return size() == _buf.size();
+    }
+
+    constexpr std::size_t size() const noexcept { return _head - _tail; }
+
+    constexpr bool push(T&& b) noexcept
+    {
+        if (isFull()) {
+            return false;
+        }
+        _buf[mask(_head++)] = b;
+        return true;
+    }
+
+    constexpr std::optional<T> pull() noexcept
+    {
+        if (isEmpty()) {
+            return std::nullopt;
+        }
+        return _buf[mask(_tail++)];
+    }
+
+  private:
+    static constexpr std::size_t mask(std::size_t val) noexcept { return val & (N - 1); }
+
+    std::size_t _tail{};
+    std::size_t _head{};
+    std::array<T, N> _buf;
+};
+
+// volatile Ringbuffer<Events, 8> eventBuf;
+Ringbuffer<Events, 8> eventBuf;
+
+namespace {
+
+void captureIsr(CaptureTimG::PeriodType period) noexcept { eventBuf.push(Event::TimerCapture{period}); }
+
+}    // namespace
+
 I2c Devices::i2c0;
-CaptureTimG Devices::timG8;
+CaptureTimG Devices::timG8(captureIsr);
 TimA0Clock Devices::timA0;
 
 [[noreturn]] int main()
@@ -78,22 +205,47 @@ TimA0Clock Devices::timA0;
 
     while (1) {
 
-        auto updateLeds = [&shiftLight]<typename REP_T, typename PERIOD_T>(
-                              std::chrono::duration<REP_T, PERIOD_T> period) noexcept {
+        auto onEvent = [&shiftLight](const Event::TimerCapture& e) noexcept {
             static constexpr unsigned int scaler = 1 << 20;
-            // TODO explain why /2
+
             const auto rpm =
                 scaler /
-                std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(period)
+                std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(e.period)
                     .count();
 
             shiftLight.update(rpm);
         };
 
-        Devices::timG8.getPeriod().transform(updateLeds);
+        // auto onEvent = [&shiftLight](const Event::CaptureTimeout& e) noexcept { shiftLight.update(0); };
+
+        // Devices::timG8.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 
+        // while (!eventBuf.isEmpty()) {    // TODO check not needed, because pull will return nullopt in that case
+        //     const auto event = eventBuf.pull();
+        //     if (!event.has_value()) {
+        //         break;
+        //     }
+        //     std::visit([onEvent](auto&& ev) { onEvent(ev); }, event.value());
+        // }
+
+        const auto event = eventBuf.pull();
+        if (event.has_value()) {
+            // break;
+            std::visit([onEvent](auto&& ev) { onEvent(ev); }, event.value());
+        }
+
+        // while (const auto event = eventBuf.pull(); event.has_value()) {
+        //     std::visit([](auto&& ev) { onEvent(ev); }, event.value());
+        // }
+
+        if (!eventBuf.isEmpty()) {
+            continue;
+        }
+
+        // if (eventBuf.isEmpty()){
         __WFE();
+        // }
     }
 }
