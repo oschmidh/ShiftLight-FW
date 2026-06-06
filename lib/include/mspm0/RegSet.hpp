@@ -2,6 +2,7 @@
 #define REGSET_HPP
 
 #include <cstdint>
+#include <utility>
 #include <new>
 
 namespace mspm0::detail::regSet {
@@ -56,15 +57,45 @@ class ClockControl {
         _regs->CKLDIV = div - 1;
     }
 
-    constexpr void setSource(ClockSource src) const noexcept
-    {
-        _regs->CLKSEL = static_cast<std::underlying_type_t<ClockSource>>(src);
-    }
+    constexpr void setSource(ClockSource src) const noexcept { _regs->CLKSEL = std::to_underlying(src); }
 
   private:
     struct Registers {
         std::uint32_t CKLDIV;
         std::uint32_t reserved;
+        std::uint32_t CLKSEL;
+    };
+
+    static constexpr uintptr_t regOffset = 0x1000;
+
+    volatile Registers* const _regs;
+};
+
+class ClockControl2 {    // TODO hack...
+  public:
+    enum class ClockSource : std::uint32_t {
+        BusClk = 8,
+        MfClk = 4,
+        LfClk = 2,
+    };
+
+    constexpr ClockControl2(uintptr_t periphAddr) noexcept
+     : _regs(new (reinterpret_cast<std::uint32_t*>(periphAddr + regOffset)) Registers)
+    { }
+
+    constexpr void setDivider(unsigned int div) const noexcept
+    {
+        if (div > 8) {
+            return;
+        }
+        _regs->CKLDIV = div - 1;
+    }
+
+    constexpr void setSource(ClockSource src) const noexcept { _regs->CLKSEL = std::to_underlying(src); }
+
+  private:
+    struct Registers {
+        std::uint32_t CKLDIV;
         std::uint32_t CLKSEL;
     };
 
