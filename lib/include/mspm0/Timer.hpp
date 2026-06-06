@@ -56,7 +56,7 @@ class Timer {
 
     enum class CcpDirection { Input = 0, Output = 1 };
 
-    constexpr Timer(uintptr_t addr) noexcept
+    constexpr Timer(std::uintptr_t addr) noexcept
      : _pwrCtrl(addr)
      , _clkCtrl(addr)
      , _intCtrl(addr, detail::regSet::intRegOffset)
@@ -141,6 +141,7 @@ class Timer {
     void setCcpValue(unsigned int channel, std::uint32_t val) noexcept { _ctrRegs->CC[channel] = val; }
 
     void setCounter(std::uint16_t val) noexcept { _ctrRegs->CTR = val; }
+    std::uint16_t getCounter() const noexcept { return _ctrRegs->CTR; }
 
     void enableClock() noexcept { _commonRegs->CCLKCTL |= 1; }
 
