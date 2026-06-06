@@ -1,6 +1,6 @@
 #include "Devices.hpp"
 #include "Interrupt.hpp"
-#include "Nvic.hpp"
+#include "cortex_m0/Nvic.hpp"
 
 #include <array>
 #include <span>
@@ -70,7 +70,7 @@ constexpr void initBssSection() noexcept
 
 static constexpr unsigned int numDevInterrupts = 32;
 
-[[gnu::section(".intvecs"), gnu::used]] constinit const nvic::IntVecTable intVecTable{
+[[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0::nvic::IntVecTable intVecTable{
     .stackPtr = &__StackTop,
     .coreIsrTable =
         {

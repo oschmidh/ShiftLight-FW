@@ -2,6 +2,7 @@
 #define LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 
 #include "Timer.hpp"
+#include "cortex_m0/Nvic.hpp"
 
 #include <chrono>
 #include <expected>
@@ -64,7 +65,7 @@ class CaptureTimer {
 
     void enable() noexcept
     {
-        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.intLine));    // TODO remove cast
+        cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
         _tim.start();
     }
 

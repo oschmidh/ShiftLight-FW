@@ -2,6 +2,7 @@
 #define LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 
 #include "Timer.hpp"
+#include "cortex_m0/Nvic.hpp"
 
 #include <limits>
 #include <cstdint>
@@ -17,7 +18,7 @@ struct PeriodicTimerConfig {
 template <PeriodicTimerConfig CFG_V>
 class PeriodicTimer {
   public:
-    static constexpr auto intLine = std::integral_constant<unsigned int, TIMA0_INT_IRQn>{};
+    static constexpr auto intLine = std::integral_constant<unsigned int, CFG_V.intLine>{};
 
     static constexpr unsigned int presc = CFG_V.prescaler;
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
@@ -58,11 +59,11 @@ class PeriodicTimer {
         _tim.enableClock();
         // DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
-        NVIC_EnableIRQ(static_cast<IRQn_Type>(CFG_V.intLine));
+        cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
         _tim.start();
     }
 
-    TickType getTicks() noexcept { return DL_TimerA_getTimerCount(TIMA0); }
+    TickType getTicks() noexcept { return _tim.getCounter(); }
 
     void isr()
     {
