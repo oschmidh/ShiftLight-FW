@@ -8,7 +8,7 @@
 
 namespace System {
 
-using SteadyClock = TimerSteadyClock<Devices::timA0>;
+using SteadyClock = TimerSteadyClock<Devices::sysTim>;
 
 }    // namespace System
 

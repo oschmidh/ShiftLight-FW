@@ -31,43 +31,63 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
 [[noreturn]] int main()
 {
-    Devices::gpioA.init();
+    mspm0::peripherals::gpio0.init();
 
     delay_cycles(POWER_STARTUP_DELAY);    // TODO ??
 
-    Devices::sysCtl.disableNrstPin();
+    mspm0::peripherals::sysCtl.disableNrstPin();
 
-    Devices::pin1->configure(
+    mspm0::peripherals::pin1->configure(
         {.function = mspm0::IoMux::Pin1Functions::I2c0_Sda, .connected = true, .inputEnable = true, .openDrain = true});
-    Devices::pin2->configure(
+    mspm0::peripherals::pin2->configure(
         {.function = mspm0::IoMux::Pin2Functions::I2c0_Scl, .connected = true, .inputEnable = true, .openDrain = true});
-    Devices::pin28->configure(
+    mspm0::peripherals::pin28->configure(
         {.function = mspm0::IoMux::Pin28Functions::TimG8_Ccp1, .connected = true, .inputEnable = true});
 
-    Devices::sysCtl.configureSysOsc({.freq = mspm0::SysControl::SysOscFreq::Base32Mhz});
-    Devices::sysCtl.configureMclk({.divider = 0});
+    mspm0::peripherals::sysCtl.configureSysOsc({.freq = mspm0::SysControl::SysOscFreq::Base32Mhz});
+    mspm0::peripherals::sysCtl.configureMclk({.divider = 0});
 
     System::SteadyClock sysTime{};
     sysTime.init();
 
-    Devices::timG8.init();
+    Devices::captureTim.init();
 
-    Devices::i2c0.init();
+    Devices::i2c.init();
 
     static constexpr std::uint8_t ledDriverI2cAddr = 0x20;    // TODO define somewhere else
-    Tlc59208f ledDriver(Devices::i2c0, ledDriverI2cAddr);
-    ledDriver.configure({.mode = Tlc59208f<I2c>::Mode::Normal});    // TODO get rid of template param in enum
+    Tlc59208f ledDriver(Devices::i2c, ledDriverI2cAddr);
+    ledDriver.configure({.mode = Tlc59208f<mspm0::I2cController>::Mode::Normal});    // TODO get rid of template param
+                                                                                     // in enum
+
+    // constexpr std::array ledDriverChannelCfg = []() {
+    //     std::array<Tlc59208f<mspm0::I2cController>::ChannelConfig, numLeds> channelCfgs;
+    //     for (auto& cfg : channelCfgs) {
+    //         cfg.channel = i;
+    //         cfg.state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl;
+    //     }
+    //     return channelCfgs;
+    // }();
+
+    // ledDriver.configureChannels(ledDriverChannelCfg);
 
     // TODO kinda ugly api...
     ledDriver.configureChannels(
-        Tlc59208f<I2c>::ChannelConfig{.channel = 0, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 1, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 2, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 3, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 4, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 5, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 6, .state = Tlc59208f<I2c>::DriverState::GroupCtrl},
-        Tlc59208f<I2c>::ChannelConfig{.channel = 7, .state = Tlc59208f<I2c>::DriverState::GroupCtrl});
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 0, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 1, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 2, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 3, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 4, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 5, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 6, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
+        Tlc59208f<mspm0::I2cController>::ChannelConfig{
+            .channel = 7, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl});
 
     ledDriver.setGlobalBrightness(0x30);
 
@@ -79,10 +99,10 @@ void startupAnimation(auto& clock, auto& leds) noexcept
                                                                            0x2e, 0x2e        // red
                                                                          };
     // clang-format on
-    LedBuffer<Tlc59208f<I2c>, numLeds, brightnessTable> leds(ledDriver);
+    LedBuffer<Tlc59208f<mspm0::I2cController>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    Devices::timG8.enable();
+    Devices::captureTim.enable();
 
     startupAnimation(sysTime, leds);
 
@@ -100,7 +120,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
             shiftLight.update(rpm);
         };
 
-        Devices::timG8.getPeriod().transform(updateLeds);
+        Devices::captureTim.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 

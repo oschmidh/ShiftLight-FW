@@ -19,8 +19,8 @@ class I2cController {    // TODO call i2cController?
   public:
     using ErrorType = I2cError;
 
-    I2cController(std::uintptr_t addr) noexcept
-     : _i2c(addr)
+    I2cController(I2c& i2c) noexcept
+     : _i2c(i2c)
     { }
 
     void init() noexcept
@@ -122,7 +122,7 @@ class I2cController {    // TODO call i2cController?
     }
 
   private:
-    I2c _i2c;
+    I2c& _i2c;
 };
 
 }    // namespace mspm0

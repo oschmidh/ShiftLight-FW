@@ -3,6 +3,7 @@ app_include_dirs = include_directories('include')
 app_sources = files(
     'src/Devices.cpp',
     'src/main.cpp',
+    'src/Mspm0c110x.cpp',
     'src/startup.cpp'
 )
 

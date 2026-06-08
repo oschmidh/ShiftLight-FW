@@ -28,8 +28,8 @@ class PeriodicTimer {
     using TickType = std::uint16_t;
     static constexpr TickType period = std::numeric_limits<TickType>::max();
 
-    constexpr PeriodicTimer(uintptr_t addr) noexcept
-     : _tim(addr)
+    constexpr PeriodicTimer(Timer& tim) noexcept
+     : _tim(tim)
     { }
 
     void init(CallbackType elapsedCallback) noexcept
@@ -84,7 +84,7 @@ class PeriodicTimer {
 
   private:
     CallbackType _cb;
-    Timer _tim;
+    Timer& _tim;
 };
 
 }    // namespace mspm0

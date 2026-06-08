@@ -30,8 +30,8 @@ class CaptureTimer {
 
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
 
-    constexpr CaptureTimer(uintptr_t addr) noexcept
-     : _tim(addr)
+    constexpr CaptureTimer(Timer& tim) noexcept
+     : _tim(tim)
     { }
 
     void init() noexcept
@@ -104,7 +104,7 @@ class CaptureTimer {
     }
 
   private:
-    Timer _tim;
+    Timer& _tim;
     volatile bool _synced{};
 };
 
