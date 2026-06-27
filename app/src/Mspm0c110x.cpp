@@ -30,8 +30,8 @@ mspm0::I2c i2c0(PeriphAddr::i2c0);
 mspm0::Timer timG8(PeriphAddr::timG8);
 mspm0::Timer timA0(PeriphAddr::timA0);
 
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>* pin1 = createPin<mspm0::IoMux::Pins::PinCm1>(PeriphAddr::ioMux);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>* pin2 = createPin<mspm0::IoMux::Pins::PinCm2>(PeriphAddr::ioMux);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28>* pin28 = createPin<mspm0::IoMux::Pins::PinCm28>(PeriphAddr::ioMux);
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>& pin1 = *createPin<mspm0::IoMux::Pins::PinCm1>(PeriphAddr::ioMux);
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>& pin2 = *createPin<mspm0::IoMux::Pins::PinCm2>(PeriphAddr::ioMux);
+mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28>& pin28 = *createPin<mspm0::IoMux::Pins::PinCm28>(PeriphAddr::ioMux);
 
 }    // namespace mspm0::peripherals
