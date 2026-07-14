@@ -15,7 +15,7 @@ enum class I2cError {
 
 namespace mspm0 {
 
-class I2cController {    // TODO call i2cController?
+class I2cController {
   public:
     using ErrorType = I2cError;
 
@@ -29,9 +29,6 @@ class I2cController {    // TODO call i2cController?
 
         _i2c.configureGlitchFilter({.analogGlitchSuppression = false});    // TODO needed?
 
-        /* Configure Controller Mode */
-        // _regs->CCTR = 0;    // TODO needed?
-
         // TODO make configurable at compile time:
         static constexpr unsigned int i2cClk = 24'000'000;
         static constexpr unsigned int i2cFreq = 100'000;
@@ -44,7 +41,7 @@ class I2cController {    // TODO call i2cController?
         _i2c.setControllerTimerPeriod(tpr);
 
         _i2c.setControllerTxFifoTriggerByteLevel(1);
-        _i2c.setControllerRxFifoTriggerByteLevel(1);
+        _i2c.setControllerRxFifoTriggerByteLevel(0);
 
         _i2c.configureController({.active = true, .clockStretchDetection = true});
     }
@@ -72,13 +69,12 @@ class I2cController {    // TODO call i2cController?
             data = _i2c.fillTxFifo(data);
         }
 
-        /* Poll until the Controller writes all bytes */
+        // Poll until the Controller writes all bytes
         while (_i2c.getControllerStatus().busy())
             ;
 
-        /* Trap if there was an error */
         if (_i2c.getControllerStatus().error()) {
-            return ErrorType::IoError;    // TODO return error code?
+            return ErrorType::IoError;
         }
 
         while (!_i2c.getControllerStatus().idle())
