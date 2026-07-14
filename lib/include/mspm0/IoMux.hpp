@@ -1,7 +1,7 @@
 #ifndef LIB_INCLUDE_MSPM0_IOMUX_HPP
 #define LIB_INCLUDE_MSPM0_IOMUX_HPP
 
-#include "RegSet.hpp"
+#include "CommonRegs.hpp"
 
 #include <array>
 #include <new>
