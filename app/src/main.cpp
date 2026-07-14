@@ -4,8 +4,6 @@
 #include "System.hpp"
 #include <drivers/Tlc59208f.hpp>
 
-#include "ti_msp_dl_config.h"
-
 #include <cstdint>
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
@@ -32,8 +30,6 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 [[noreturn]] int main()
 {
     mspm0::peripherals::gpio0.init();
-
-    delay_cycles(POWER_STARTUP_DELAY);    // TODO ??
 
     mspm0::peripherals::sysCtl.disableNrstPin();
 
@@ -124,6 +120,6 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
         // TODO implement dimming based on ambient light sensor?
 
-        __WFE();
+        asm volatile("wfe" ::: "memory");
     }
 }
