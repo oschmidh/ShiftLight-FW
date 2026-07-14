@@ -9,7 +9,7 @@
 
 namespace mspm0 {
 
-class I2c {
+class I2c : detail::Peripheral {
   public:
     enum class ClockSource : std::uint32_t {
         BusClk = 1 << 3u,
@@ -17,16 +17,16 @@ class I2c {
     };
 
     I2c(std::uintptr_t addr) noexcept
-     : _pwrCtrl(addr)
-     , _intCtrl(addr)
+     : detail::Peripheral(addr)
+     //  , _intCtrl(addr)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _regs(new (reinterpret_cast<std::uint32_t*>(addr + regOffset)) Registers)
     { }
 
     void init() noexcept
     {
-        _pwrCtrl.reset();
-        _pwrCtrl.enable();
+        _pwrRegs->resetCtl.reset();
+        _pwrRegs->powerEn.enable();
 
         _clkRegs->clockSel.setSource(ClockSource::BusClk);
     }
@@ -185,8 +185,7 @@ class I2c {
     static constexpr uintptr_t clockRegOffset = 0x1000;
     static constexpr uintptr_t regOffset = 0x1200;    // TODO fix
 
-    detail::regSet::PowerControl _pwrCtrl;
-    detail::regSet::InterruptEventControl _intCtrl;
+    // detail::regSet::InterruptEventControl _intCtrl;
 
     ClockRegisters* const _clkRegs;
     Registers* const _regs;

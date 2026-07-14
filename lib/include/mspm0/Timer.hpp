@@ -9,7 +9,7 @@
 
 namespace mspm0 {
 
-class Timer {
+class Timer : detail::Peripheral {
   public:
     enum class ClockSource : std::uint32_t {
         BusClk = 1 << 3u,
@@ -63,8 +63,8 @@ class Timer {
     enum class CcpDirection { Input = 0, Output = 1 };
 
     constexpr Timer(std::uintptr_t addr) noexcept
-     : _pwrCtrl(addr)
-     , _intCtrl(addr)
+     : detail::Peripheral(addr)
+     //  , _intCtrl(addr)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
@@ -72,8 +72,8 @@ class Timer {
 
     void init(std::uint8_t prescaler) noexcept
     {
-        _pwrCtrl.reset();
-        _pwrCtrl.enable();
+        _pwrRegs->resetCtl.reset();
+        _pwrRegs->powerEn.enable();
 
         _clkRegs->clockSel.setSource(ClockSource::BusClk);
         _commonRegs->CPS = prescaler;
@@ -189,12 +189,13 @@ class Timer {
     void enableInterrupts(Ts... interrupts) noexcept
     {
         const std::uint32_t mask = ((1u << std::to_underlying(interrupts)) | ...);
-        _intCtrl.enableInterrupts(mask);
+        _intEvRegs->intCtrl.enable(mask);
     }
 
     std::optional<Interrupts::InterruptVals> getNextPendingInterrupt() const noexcept
     {
-        const std::uint32_t nextIidx = _intCtrl.getNextPendingInterrupt();
+        // const std::uint32_t nextIidx = _intCtrl.getNextPendingInterrupt();
+        const std::uint32_t nextIidx = _intEvRegs->intCtrl.getNextPending();
         if (nextIidx == 0) {
             return std::nullopt;
         }
@@ -245,9 +246,8 @@ class Timer {
         volatile std::uint32_t IFCTL[4];
     };
 
-    detail::regSet::PowerControl _pwrCtrl;
     // detail::regSet::ClockControl _clkCtrl;
-    detail::regSet::InterruptEventControl _intCtrl;
+    // detail::regSet::InterruptEventControl _intCtrl;
 
     // std::array<CcpChannel, 4> _ccpChannels;
 

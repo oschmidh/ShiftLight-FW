@@ -8,23 +8,22 @@
 
 namespace mspm0 {
 
-class Gpio {
+class Gpio : detail::Peripheral {
   public:
     Gpio(std::uintptr_t addr) noexcept
-     : _pwrCtrl(addr)
+     : detail::Peripheral(addr)
     //  , _clkCtrl(addr)
     { }
 
     void init() noexcept
     {
-        _pwrCtrl.reset();
-        _pwrCtrl.enable();
+        _pwrRegs->resetCtl.reset();
+        _pwrRegs->powerEn.enable();
 
         // _clkCtrl.setSource(detail::regSet::ClockControl::ClockSource::BusClk);
     }
 
   private:
-    detail::regSet::PowerControl _pwrCtrl;
     // detail::regSet::ClockControl _clkCtrl;
 };
 
