@@ -1,7 +1,7 @@
 #ifndef LIB_INCLUDE_MSPM0_TIMER_HPP
 #define LIB_INCLUDE_MSPM0_TIMER_HPP
 
-#include "RegSet.hpp"
+#include "CommonRegs.hpp"
 
 #include <utility>
 #include <optional>
@@ -11,6 +11,12 @@ namespace mspm0 {
 
 class Timer {
   public:
+    enum class ClockSource : std::uint32_t {
+        BusClk = 1 << 3u,
+        MfClk = 1 << 2u,
+        LfClk = 1 << 1u,
+    };
+
     enum class CaptureCondition : std::uint32_t {
         None = 0,
         RisingEdge = 1,
@@ -58,8 +64,8 @@ class Timer {
 
     constexpr Timer(std::uintptr_t addr) noexcept
      : _pwrCtrl(addr)
-     , _clkCtrl(addr)
-     , _intCtrl(addr, detail::regSet::intRegOffset)
+     , _intCtrl(addr)
+     , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
     { }
@@ -69,7 +75,7 @@ class Timer {
         _pwrCtrl.reset();
         _pwrCtrl.enable();
 
-        _clkCtrl.setSource(detail::regSet::ClockControl::ClockSource::BusClk);
+        _clkRegs->clockSel.setSource(ClockSource::BusClk);
         _commonRegs->CPS = prescaler;
     }
 
@@ -188,7 +194,7 @@ class Timer {
 
     std::optional<Interrupts::InterruptVals> getNextPendingInterrupt() const noexcept
     {
-        const std::uint32_t nextIidx = _intCtrl.getNextPending();
+        const std::uint32_t nextIidx = _intCtrl.getNextPendingInterrupt();
         if (nextIidx == 0) {
             return std::nullopt;
         }
@@ -207,43 +213,51 @@ class Timer {
     }
 
   private:
-    struct CommonRegisters {
-        std::uint32_t CCPD;
-        std::uint32_t ODIS;
-        std::uint32_t CCLKCTL;
-        std::uint32_t CPS;
-        std::uint32_t CPSV;
-        std::uint32_t CTTTRIGCTRL;
+    struct ClockRegisters {
+        detail::commonRegs::ClockDiv clockDiv;
         std::uint32_t reserved;
-        std::uint32_t CTTTRIG;
+        detail::commonRegs::ClockSel<ClockSource> clockSel;
+    };
+
+    struct CommonRegisters {
+        volatile std::uint32_t CCPD;
+        volatile std::uint32_t ODIS;
+        volatile std::uint32_t CCLKCTL;
+        volatile std::uint32_t CPS;
+        volatile std::uint32_t CPSV;
+        volatile std::uint32_t CTTTRIGCTRL;
+        volatile std::uint32_t reserved;
+        volatile std::uint32_t CTTTRIG;
     };
 
     struct CounterRegisters {
-        std::uint32_t CTR;
-        std::uint32_t CTRCTL;
-        std::uint32_t LOAD;
-        std::uint32_t reserved_0;
-        std::uint32_t CC[6];
-        std::uint32_t reserved_1[2];
-        std::uint32_t CCCTL[6];
-        std::uint32_t reserved_2[2];
-        std::uint32_t OCTL[4];
-        std::uint32_t reserved_3[4];
-        std::uint32_t CCACT[4];
-        std::uint32_t IFCTL[4];
+        volatile std::uint32_t CTR;
+        volatile std::uint32_t CTRCTL;
+        volatile std::uint32_t LOAD;
+        volatile std::uint32_t reserved_0;
+        volatile std::uint32_t CC[6];
+        volatile std::uint32_t reserved_1[2];
+        volatile std::uint32_t CCCTL[6];
+        volatile std::uint32_t reserved_2[2];
+        volatile std::uint32_t OCTL[4];
+        volatile std::uint32_t reserved_3[4];
+        volatile std::uint32_t CCACT[4];
+        volatile std::uint32_t IFCTL[4];
     };
 
     detail::regSet::PowerControl _pwrCtrl;
-    detail::regSet::ClockControl _clkCtrl;
-    detail::regSet::InterruptControl _intCtrl;
+    // detail::regSet::ClockControl _clkCtrl;
+    detail::regSet::InterruptEventControl _intCtrl;
 
     // std::array<CcpChannel, 4> _ccpChannels;
 
+    static constexpr uintptr_t clockRegOffset = 0x1000;
     static constexpr uintptr_t commonRegOffset = 0x1100;
     static constexpr uintptr_t ctrRegOffset = 0x1800;
 
-    volatile CommonRegisters* const _commonRegs;
-    volatile CounterRegisters* const _ctrRegs;
+    ClockRegisters* const _clkRegs;
+    CommonRegisters* const _commonRegs;
+    CounterRegisters* const _ctrRegs;
 
     // fn_ref _callback;    // TODO implement
 };
