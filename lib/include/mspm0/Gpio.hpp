@@ -8,12 +8,16 @@
 
 namespace mspm0 {
 
-class Gpio : detail::Peripheral {
+class Gpio : detail::Peripheral<Gpio> {
   public:
     Gpio(std::uintptr_t addr) noexcept
-     : detail::Peripheral(addr)
+     : detail::Peripheral<Gpio>(addr)
     //  , _clkCtrl(addr)
     { }
+
+    struct Interrupts {
+        enum class InterruptVals : std::uint32_t { };
+    };    // TODO make not needed...
 
     void init() noexcept
     {

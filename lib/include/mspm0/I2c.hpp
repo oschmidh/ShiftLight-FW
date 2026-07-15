@@ -9,7 +9,7 @@
 
 namespace mspm0 {
 
-class I2c : detail::Peripheral {
+class I2c : detail::Peripheral<I2c> {
   public:
     enum class ClockSource : std::uint32_t {
         BusClk = 1 << 3u,
@@ -17,7 +17,7 @@ class I2c : detail::Peripheral {
     };
 
     I2c(std::uintptr_t addr) noexcept
-     : detail::Peripheral(addr)
+     : detail::Peripheral<I2c>(addr)
      //  , _intCtrl(addr)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _regs(new (reinterpret_cast<std::uint32_t*>(addr + regOffset)) Registers)
@@ -81,6 +81,10 @@ class I2c : detail::Peripheral {
       private:
         volatile std::uint32_t _reg;
     };
+
+    struct Interrupts {
+        enum class InterruptVals : std::uint32_t { };
+    };    // TODO make not needed...
 
     const ControllerStatus& getControllerStatus() const noexcept { return _regs->controllerStatus; }
 

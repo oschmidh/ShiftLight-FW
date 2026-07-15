@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <optional>
 #include <new>
 
 namespace mspm0::detail {
@@ -60,13 +61,36 @@ class ClockSel {
     volatile std::uint32_t _reg;
 };
 
+template <typename INTERRUPT_ENUM_T>
+    requires(std::is_same_v<std::underlying_type_t<INTERRUPT_ENUM_T>, std::uint32_t>)
 class IntControlReg {
   public:
-    constexpr void enable(std::uint32_t mask) volatile noexcept { IMASK |= mask; }
-    constexpr void disable(std::uint32_t mask) volatile noexcept { IMASK &= ~mask; }
+    template <typename... Ts>
+        requires(std::is_same_v<Ts, INTERRUPT_ENUM_T> && ...)
+    void enable(Ts... interrupts) noexcept
+    {
+        const std::uint32_t mask = ((1u << std::to_underlying(interrupts)) | ...);
+        IMASK |= mask;
+    }
+
+    template <typename... Ts>
+        requires(std::is_same_v<Ts, INTERRUPT_ENUM_T> && ...)
+    void disable(Ts... interrupts) noexcept
+    {
+        const std::uint32_t mask = ((1u << std::to_underlying(interrupts)) | ...);
+        IMASK &= ~mask;
+    }
 
     // returns next pending interrupt, sorted by prio defined in iidx reg (1 = highest prio)
-    constexpr std::uint32_t getNextPending() const volatile noexcept { return IIDX; }
+    std::optional<INTERRUPT_ENUM_T> getNextPending() const noexcept
+    {
+        const std::uint32_t nextIidx = IIDX;
+        if (nextIidx == 0) {
+            return std::nullopt;
+        }
+
+        return std::make_optional(static_cast<INTERRUPT_ENUM_T>(nextIidx - 1));
+    }
 
   private:
     volatile std::uint32_t IIDX;
@@ -217,6 +241,7 @@ namespace regSet {
 
 }    // namespace regSet
 
+template <typename DERIVED_T>
 class Peripheral {
   public:
     Peripheral(std::uintptr_t baseAddr) noexcept
@@ -230,12 +255,14 @@ class Peripheral {
         commonRegs::ResetCtl resetCtl;
     };
 
+    // using Interrupts = typename DERIVED_T::Interrupts;
+
     struct IntEvRegisters {
-        commonRegs::IntControlReg intCtrl;
+        commonRegs::IntControlReg<typename DERIVED_T::Interrupts::InterruptVals> intCtrl;
         std::uint32_t reserved_0;
-        commonRegs::IntControlReg ev0Ctrl;
+        commonRegs::IntControlReg<typename DERIVED_T::Interrupts::InterruptVals> ev0Ctrl;
         std::uint32_t reserved_1;
-        commonRegs::IntControlReg ev1Ctrl;
+        commonRegs::IntControlReg<typename DERIVED_T::Interrupts::InterruptVals> ev1Ctrl;
     };
 
     PowerRegisters* const _pwrRegs;
