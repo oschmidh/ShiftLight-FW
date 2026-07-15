@@ -16,6 +16,53 @@ class I2c : detail::Peripheral<I2c> {
         MfClk = 1 << 2u,
     };
 
+    struct GlitchFilterConfig {
+        bool analogGlitchSuppression = true;
+    };
+
+    struct ControllerConfig {
+        bool active = false;
+        bool multiControllerMode = false;
+        bool clockStretchDetection = false;
+        bool loopbackTestmode = false;
+    };
+
+    class ControllerStatus {
+      public:
+        constexpr bool error() const noexcept { return _reg & (1u << 1u); }
+        constexpr bool idle() const noexcept { return _reg & (1u << 5u); }
+        constexpr bool busy() const noexcept { return _reg & (1u << 6u); }
+        constexpr unsigned int transactionCount() const noexcept { return (_reg >> 16u) & 0xfff; }
+
+      private:
+        volatile std::uint32_t _reg;
+    };
+
+    class FifoStatus {
+      public:
+        bool flushActive() const noexcept { return _reg & 0x80; }
+        unsigned int getCount() const noexcept { return _reg & 0xf; }
+
+      private:
+        volatile std::uint8_t _reg;
+    };
+
+    enum class Direction : std::uint32_t { Transmit = 0, Receive = 1 };
+
+    struct ControllerOperationConfig {
+        bool burstrun = false;
+        bool generateStart = false;
+        bool generateStop = false;
+        bool autoAck = false;
+        bool ackOverride = false;
+        bool readOnTxEmpty = false;
+        unsigned int transactionLength = 0;
+    };
+
+    struct Interrupts {
+        enum class InterruptVals : std::uint32_t { };
+    };    // TODO make not needed...
+
     I2c(std::uintptr_t addr) noexcept
      : detail::Peripheral<I2c>(addr)
      //  , _intCtrl(addr)
@@ -31,21 +78,10 @@ class I2c : detail::Peripheral<I2c> {
         _clkRegs->clockSel.setSource(ClockSource::BusClk);
     }
 
-    struct GlitchFilterConfig {
-        bool analogGlitchSuppression = true;
-    };
-
-    void configureGlitchFilter(const GlitchFilterConfig& cfg) noexcept
+      void configureGlitchFilter(const GlitchFilterConfig& cfg) noexcept
     {
         _regs->GFCTL = cfg.analogGlitchSuppression << 8u;
     }
-
-    struct ControllerConfig {
-        bool active = false;
-        bool multiControllerMode = false;
-        bool clockStretchDetection = false;
-        bool loopbackTestmode = false;
-    };
 
     std::span<const std::byte> fillTxFifo(std::span<const std::byte> data) noexcept
     {
@@ -71,33 +107,9 @@ class I2c : detail::Peripheral<I2c> {
 
     void setControllerTimerPeriod(unsigned int period) noexcept { _regs->CTPR = period; }
 
-    class ControllerStatus {
-      public:
-        constexpr bool error() const noexcept { return _reg & (1u << 1u); }
-        constexpr bool idle() const noexcept { return _reg & (1u << 5u); }
-        constexpr bool busy() const noexcept { return _reg & (1u << 6u); }
-        constexpr unsigned int transactionCount() const noexcept { return (_reg >> 16u) & 0xfff; }
-
-      private:
-        volatile std::uint32_t _reg;
-    };
-
-    struct Interrupts {
-        enum class InterruptVals : std::uint32_t { };
-    };    // TODO make not needed...
-
     const ControllerStatus& getControllerStatus() const noexcept { return _regs->controllerStatus; }
 
-    class FifoStatus {
-      public:
-        bool flushActive() const noexcept { return _reg & 0x80; }
-        unsigned int getCount() const noexcept { return _reg & 0xf; }
-
-      private:
-        volatile std::uint8_t _reg;
-    };
-
-    const FifoStatus& getControllerRxFifoStatus() const noexcept { return _regs->controllerRxFifoStatus; }
+        const FifoStatus& getControllerRxFifoStatus() const noexcept { return _regs->controllerRxFifoStatus; }
 
     void configureController(const ControllerConfig& cfg) noexcept
     {
@@ -119,22 +131,10 @@ class I2c : detail::Peripheral<I2c> {
         _regs->controllerRxFifoCtrl.setTrigger(byteThreshold);
     }
 
-    enum class Direction : std::uint32_t { Transmit = 0, Receive = 1 };
-
     void setControllerTargetAddr(std::uint8_t addr, Direction dir) noexcept
     {
         _regs->CSA = (addr << 1u) | std::to_underlying(dir);
     }
-
-    struct ControllerOperationConfig {
-        bool burstrun = false;
-        bool generateStart = false;
-        bool generateStop = false;
-        bool autoAck = false;
-        bool ackOverride = false;
-        bool readOnTxEmpty = false;
-        unsigned int transactionLength = 0;
-    };
 
     void configureControllerOperation(const ControllerOperationConfig& cfg) noexcept
     {

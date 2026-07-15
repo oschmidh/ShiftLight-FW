@@ -62,27 +62,6 @@ class Timer : detail::Peripheral<Timer> {
 
     enum class CcpDirection { Input = 0, Output = 1 };
 
-    constexpr Timer(std::uintptr_t addr) noexcept
-     : detail::Peripheral<Timer>(addr)
-     //  , _intCtrl(addr)
-     , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
-     , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
-     , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
-    { }
-
-    void init(std::uint8_t prescaler) noexcept
-    {
-        _pwrRegs->resetCtl.reset();
-        _pwrRegs->powerEn.enable();
-
-        _clkRegs->clockSel.setSource(ClockSource::BusClk);
-        _commonRegs->CPS = prescaler;
-    }
-
-    void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }    // TODO should be uint16?
-
-    // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
-
     enum class CountMode : std::uint32_t {
         Down = 0,
         UpDown = 1,
@@ -118,6 +97,58 @@ class Timer : detail::Peripheral<Timer> {
         CtrValAfterEn ctrValAfterEn = CtrValAfterEn::LoadVal;
     };
 
+    struct Interrupts {
+        enum class InterruptVals : std::uint32_t {
+            Zero = 0,
+            Load = 1,
+            CaptureCompareDown0 = 4,
+            CaptureCompareDown1 = 5,
+            CaptureCompareDown2 = 6,
+            CaptureCompareDown3 = 7,
+            CaptureCompareUp0 = 8,
+            CaptureCompareUp1 = 9,
+            CaptureCompareUp2 = 10,
+            CaptureCompareUp3 = 11,
+            CaptureCompareUp4 = 12,
+            CaptureCompareUp5 = 13,
+            Fault = 24,
+            Overflow = 25,
+            RepeatCntZero = 26,
+            DirectionChange = 27,
+            Qeierr = 28,
+        };
+
+        using enum InterruptVals;
+
+        static constexpr std::array captureCompareUp{
+            InterruptVals::CaptureCompareUp0, InterruptVals::CaptureCompareUp1, InterruptVals::CaptureCompareUp2,
+            InterruptVals::CaptureCompareUp3, InterruptVals::CaptureCompareUp4, InterruptVals::CaptureCompareUp5};
+        static constexpr std::array captureCompareDown{
+            InterruptVals::CaptureCompareDown0, InterruptVals::CaptureCompareDown1, InterruptVals::CaptureCompareDown2,
+            InterruptVals::CaptureCompareDown3};
+    };
+
+    constexpr Timer(std::uintptr_t addr) noexcept
+     : detail::Peripheral<Timer>(addr)
+     //  , _intCtrl(addr)
+     , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
+     , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
+     , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
+    { }
+
+    void init(std::uint8_t prescaler) noexcept
+    {
+        _pwrRegs->resetCtl.reset();
+        _pwrRegs->powerEn.enable();
+
+        _clkRegs->clockSel.setSource(ClockSource::BusClk);
+        _commonRegs->CPS = prescaler;
+    }
+
+    void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }    // TODO should be uint16?
+
+    // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
+
     void configure(const Config& cfg) noexcept
     {
         _ctrRegs->CTRCTL = (std::to_underlying(cfg.ctrValAfterEn) << 28u) | (cfg.phaseLoadEn << 24u) |
@@ -152,37 +183,6 @@ class Timer : detail::Peripheral<Timer> {
     void enableClock() noexcept { _commonRegs->CCLKCTL |= 1; }
 
     void disableClock() noexcept { _commonRegs->CCLKCTL &= ~1; }
-
-    struct Interrupts {
-        enum class InterruptVals : std::uint32_t {
-            Zero = 0,
-            Load = 1,
-            CaptureCompareDown0 = 4,
-            CaptureCompareDown1 = 5,
-            CaptureCompareDown2 = 6,
-            CaptureCompareDown3 = 7,
-            CaptureCompareUp0 = 8,
-            CaptureCompareUp1 = 9,
-            CaptureCompareUp2 = 10,
-            CaptureCompareUp3 = 11,
-            CaptureCompareUp4 = 12,
-            CaptureCompareUp5 = 13,
-            Fault = 24,
-            Overflow = 25,
-            RepeatCntZero = 26,
-            DirectionChange = 27,
-            Qeierr = 28,
-        };
-
-        using enum InterruptVals;
-
-        static constexpr std::array captureCompareUp{
-            InterruptVals::CaptureCompareUp0, InterruptVals::CaptureCompareUp1, InterruptVals::CaptureCompareUp2,
-            InterruptVals::CaptureCompareUp3, InterruptVals::CaptureCompareUp4, InterruptVals::CaptureCompareUp5};
-        static constexpr std::array captureCompareDown{
-            InterruptVals::CaptureCompareDown0, InterruptVals::CaptureCompareDown1, InterruptVals::CaptureCompareDown2,
-            InterruptVals::CaptureCompareDown3};
-    };
 
     template <typename... Ts>
         requires(std::is_same_v<Ts, Interrupts::InterruptVals> && ...)
