@@ -8,7 +8,7 @@ project(
         'build.c_std=c11',
         'cpp_std=c++23',
         'build.cpp_std=c++23',
-        'warning_level=1',
+        'warning_level=2',
         'buildtype=minsize',
         'werror=true',
     ]
