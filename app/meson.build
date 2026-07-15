@@ -16,7 +16,6 @@ executable(
     name_suffix : 'elf',
     include_directories: project_include_dirs,
     dependencies: [
-        ti_driverlib_dep,
         shiftlight_lib,
     ],
     native:false
