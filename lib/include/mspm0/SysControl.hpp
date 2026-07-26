@@ -53,38 +53,10 @@ class SysControl {
     }
 
   private:
-    struct ClockRegisters {    // TODO
+    struct ClockRegisters {
         volatile std::uint32_t SysOscCfg;
         volatile std::uint32_t MclkCfg;
     };
-
-    // std::uint32_t SystemCfg;
-    // std::uint32_t BeepCfg;
-    // std::uint32_t WriteLock;
-    // std::uint32_t ClkStatus;
-    // std::uint32_t SysStatus;
-    // std::uint32_t RstCause;
-    // std::uint32_t ResetLevel;
-    // std::uint32_t ResetCmd;
-    // std::uint32_t BorThreshold;
-    // std::uint32_t BorClrCmd;
-    // std::uint32_t SysOscFclCtl;
-    // std::uint32_t ExLfctl;
-    // std::uint32_t ShdnIoRel;
-    // std::uint32_t SysStatusClr;
-    // std::uint32_t SwdCfg;
-    // std::uint32_t FccCmd;
-
-    // std::uint32_t reserved_0;
-    // std::uint32_t IMASK;
-    // std::uint32_t reserved_1;
-    // std::uint32_t RIS;
-    // std::uint32_t reserved_2;
-    // std::uint32_t MIS;
-    // std::uint32_t reserved_3;
-    // std::uint32_t ISET;
-    // std::uint32_t reserved_4;
-    // std::uint32_t ICLR;
 
     struct ResetRegisters {
         volatile std::uint32_t ExRstPin;
