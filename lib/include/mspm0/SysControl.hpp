@@ -27,7 +27,7 @@ class SysControl {
         bool useLfclk = false;
         bool useHsclk = false;
         bool useMfclk = false;
-        unsigned int divider = 0;    // TODO ensure 4 byte?
+        unsigned int divider = 0;    // TODO ensure 4 bit?
     };
 
     constexpr SysControl(uintptr_t addr) noexcept

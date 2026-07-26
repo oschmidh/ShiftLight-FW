@@ -60,7 +60,6 @@ class PeriodicTimer {
         _tim.enableClock();
 
         _tim.enableInterruptLine(CFG_V.intLine);
-        // cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
         _tim.start();
     }
 

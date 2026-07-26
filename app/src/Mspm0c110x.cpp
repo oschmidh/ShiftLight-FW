@@ -16,11 +16,11 @@ static constexpr std::uintptr_t timA0 = 0x40860000;
 
 };    // namespace PeriphAddr
 
-template <mspm0::IoMux::Pins PIN_V>
-mspm0::IoMux::Pin<PIN_V>* createPin(std::uintptr_t ioMuxAddr) noexcept
+template <mspm0::ioMux::Pins PIN_V>
+mspm0::ioMux::Pin<PIN_V>* createPin(std::uintptr_t ioMuxAddr) noexcept
 {
-    using PinType = mspm0::IoMux::Pin<PIN_V>;
-    return new (reinterpret_cast<PinType*>(ioMuxAddr + mspm0::IoMux::detail::AddressOffset<PIN_V>::value)) PinType;
+    using PinType = mspm0::ioMux::Pin<PIN_V>;
+    return new (reinterpret_cast<PinType*>(ioMuxAddr + mspm0::ioMux::detail::AddressOffset<PIN_V>::value)) PinType;
 }
 
 }    // namespace
@@ -35,8 +35,8 @@ mspm0::I2c i2c0(PeriphAddr::i2c0, nvic);
 mspm0::Timer timG8(PeriphAddr::timG8, nvic);
 mspm0::Timer timA0(PeriphAddr::timA0, nvic);
 
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>& pin1 = *createPin<mspm0::IoMux::Pins::PinCm1>(PeriphAddr::ioMux);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>& pin2 = *createPin<mspm0::IoMux::Pins::PinCm2>(PeriphAddr::ioMux);
-mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28>& pin28 = *createPin<mspm0::IoMux::Pins::PinCm28>(PeriphAddr::ioMux);
+mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm1>& pin1 = *createPin<mspm0::ioMux::Pins::PinCm1>(PeriphAddr::ioMux);
+mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm2>& pin2 = *createPin<mspm0::ioMux::Pins::PinCm2>(PeriphAddr::ioMux);
+mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm28>& pin28 = *createPin<mspm0::ioMux::Pins::PinCm28>(PeriphAddr::ioMux);
 
 }    // namespace mspm0::peripherals

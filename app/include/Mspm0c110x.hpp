@@ -21,9 +21,9 @@ extern mspm0::I2c i2c0;
 extern mspm0::Timer timG8;
 extern mspm0::Timer timA0;
 
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>& pin1;
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>& pin2;
-extern mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm28>& pin28;
+extern mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm1>& pin1;
+extern mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm2>& pin2;
+extern mspm0::ioMux::Pin<mspm0::ioMux::Pins::PinCm28>& pin28;
 
 }    // namespace mspm0::peripherals
 

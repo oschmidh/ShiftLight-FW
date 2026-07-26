@@ -68,19 +68,8 @@ constexpr void initBssSection() noexcept
     hardfaultHandler();
 }
 
-// using IsrPtrType = void (*)();
-// static_assert(sizeof(std::array<IsrPtrType, 32>) == sizeof(IsrPtrType[32]));
-
-// template <std::size_t N_DEV_INTERRUTPS_V>
-// struct IntVecTable {
-//     std::uint32_t* stackPtr;
-//     std::array<IsrPtrType, numCoreInterrupts> coreIsrTable;
-//     std::array<IsrPtrType, NUM_DEV_INTERRUPTS> devIsrTable;
-// };
-
 static constexpr unsigned int nDevInterrupts = 15;
 
-// [[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0::nvic::IntVecTable intVecTable{
 [[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0plus::IntVecTable intVecTable{
     .stackPtr = &__StackTop,
     .coreIsrTable =

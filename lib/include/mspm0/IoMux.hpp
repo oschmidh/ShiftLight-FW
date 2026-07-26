@@ -7,9 +7,7 @@
 #include <new>
 #include <cstdint>
 
-namespace mspm0 {
-
-namespace IoMux {
+namespace mspm0::ioMux {
 
 namespace detail {
 
@@ -86,8 +84,6 @@ struct AddressOffset {
 
 }    // namespace detail
 
-}    // namespace IoMux
-
-}    // namespace mspm0
+}    // namespace mspm0::ioMux
 
 #endif    // LIB_INCLUDE_MSPM0_IOMUX_HPP

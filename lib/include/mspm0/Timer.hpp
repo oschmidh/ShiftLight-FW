@@ -82,12 +82,6 @@ class Timer : public detail::Peripheral<Timer> {
         Zero = 2,
     };
 
-    // enum class CtrLoadControl : std::uint32_t {
-    // LoadVal=0,
-    // Unchanged=1,
-    // Zero=2,
-    // };
-
     struct Config {
         CountMode countMode = CountMode::Down;
         Repeat repeat = Repeat::No;
@@ -131,7 +125,6 @@ class Timer : public detail::Peripheral<Timer> {
 
     constexpr Timer(std::uintptr_t addr, cortex_m0plus::Nvic& nvic) noexcept
      : detail::Peripheral<Timer>(addr, nvic)
-     //  , _intCtrl(addr)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
@@ -148,8 +141,6 @@ class Timer : public detail::Peripheral<Timer> {
     }
 
     void setReloadVal(std::uint32_t cntrVal) noexcept { _ctrRegs->LOAD = cntrVal; }    // TODO should be uint16?
-
-    // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
     void configure(const Config& cfg) noexcept
     {
@@ -243,11 +234,6 @@ class Timer : public detail::Peripheral<Timer> {
         volatile std::uint32_t IFCTL[4];
     };
 
-    // detail::regSet::ClockControl _clkCtrl;
-    // detail::regSet::InterruptEventControl _intCtrl;
-
-    // std::array<CcpChannel, 4> _ccpChannels;
-
     static constexpr uintptr_t clockRegOffset = 0x1000;
     static constexpr uintptr_t commonRegOffset = 0x1100;
     static constexpr uintptr_t ctrRegOffset = 0x1800;
@@ -255,8 +241,6 @@ class Timer : public detail::Peripheral<Timer> {
     ClockRegisters* const _clkRegs;
     CommonRegisters* const _commonRegs;
     CounterRegisters* const _ctrRegs;
-
-    // fn_ref _callback;    // TODO implement
 };
 
 }    // namespace mspm0

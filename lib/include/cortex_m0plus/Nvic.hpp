@@ -6,28 +6,15 @@
 
 namespace cortex_m0plus {
 
-// namespace nvic {
-
-// template <std::size_t N_DEV_INTERRUTPS_V>
 class Nvic {
   public:
     constexpr Nvic(std::uintptr_t addr) noexcept
      : _regs(new (reinterpret_cast<std::uint32_t*>(addr)) Registers)
     { }
 
-    void enableInterrupt(unsigned int irqNum) noexcept
-    {
-        // static constexpr std::uintptr_t ISER_addr = 0xe000e100;    // TODO somewhat ugly...
-        // *reinterpret_cast<std::uint32_t*>(ISER_addr) = 1u << irqNum;
-        _regs->iser = 1u << irqNum;
-    }
+    void enableInterrupt(unsigned int irqNum) noexcept { _regs->iser = 1u << irqNum; }
 
-    void disableInterrupt(unsigned int irqNum) noexcept
-    {
-        // static constexpr std::uintptr_t ICER_addr = 0xe000e180;
-        // *reinterpret_cast<std::uint32_t*>(ICER_addr) = 1u << irqNum;
-        _regs->icer = 1u << irqNum;
-    }
+    void disableInterrupt(unsigned int irqNum) noexcept { _regs->icer = 1u << irqNum; }
 
   private:
     struct Registers {
@@ -39,19 +26,17 @@ class Nvic {
     Registers* _regs;
 };
 
-using IsrPtrType = void (*)();
-static_assert(sizeof(std::array<IsrPtrType, 32>) == sizeof(IsrPtrType[32]));
-
-static constexpr unsigned int nCoreInterrupts = 15;
-
 template <std::size_t N_DEV_INTERRUTPS_V>
 struct IntVecTable {
+    using IsrPtrType = void (*)();
+    static_assert(sizeof(std::array<IsrPtrType, 32>) == sizeof(IsrPtrType[32]));
+
+    static constexpr unsigned int nCoreInterrupts = 15;
+
     std::uint32_t* stackPtr;
     std::array<IsrPtrType, nCoreInterrupts> coreIsrTable;
     std::array<IsrPtrType, N_DEV_INTERRUTPS_V> devIsrTable;
 };
-
-// }    // namespace nvic
 
 }    // namespace cortex_m0plus
 
