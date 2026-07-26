@@ -1,7 +1,8 @@
 #ifndef LIB_INCLUDE_MSPM0_TIMER_HPP
 #define LIB_INCLUDE_MSPM0_TIMER_HPP
 
-#include "CommonRegs.hpp"
+#include "detail/Peripheral.hpp"
+#include "detail/CommonRegs.hpp"
 
 #include <utility>
 #include <optional>
@@ -9,7 +10,7 @@
 
 namespace mspm0 {
 
-class Timer : detail::Peripheral<Timer> {
+class Timer : public detail::Peripheral<Timer> {
   public:
     enum class ClockSource : std::uint32_t {
         BusClk = 1 << 3u,
@@ -128,12 +129,13 @@ class Timer : detail::Peripheral<Timer> {
             InterruptVals::CaptureCompareDown3};
     };
 
-    constexpr Timer(std::uintptr_t addr) noexcept
-     : detail::Peripheral<Timer>(addr)
+    constexpr Timer(std::uintptr_t addr, cortex_m0plus::Nvic& nvic) noexcept
+     : detail::Peripheral<Timer>(addr, nvic)
      //  , _intCtrl(addr)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
      , _commonRegs(new (reinterpret_cast<std::uint32_t*>(addr + commonRegOffset)) CommonRegisters)
      , _ctrRegs(new (reinterpret_cast<std::uint32_t*>(addr + ctrRegOffset)) CounterRegisters)
+
     { }
 
     void init(std::uint8_t prescaler) noexcept

@@ -2,11 +2,18 @@
 #define LIB_INCLUDE_MSPM0_CAPTURETIMER_HPP
 
 #include "Timer.hpp"
-#include "cortex_m0/Nvic.hpp"
 
 #include <chrono>
 #include <expected>
 #include <cstdint>
+
+// static constexpr unsigned int dynamicFreq = std::numeric_limits<unsigned int>::max();
+
+// template <unsigned int CLK_FREQ_V = dynamicFreq>
+// class ClockSource {
+//   public:
+//   private:
+// };
 
 namespace mspm0 {
 
@@ -15,13 +22,17 @@ enum class CaptureTimerError {
     NotSynced,
 };
 
+// template <typename CLK_SRC_T>
 struct CaptureTimerConfig {
+    // CLK_SRC_T clkSrc;
     unsigned int intLine;
     unsigned int channel;
-    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
+    unsigned int prescaler;
 };
 
+// template <typename CLK_SRC_T, CaptureTimerConfig CFG_V>
 template <CaptureTimerConfig CFG_V>
+// template <auto CFG_V>
 class CaptureTimer {
   public:
     using ErrorType = CaptureTimerError;
@@ -29,6 +40,7 @@ class CaptureTimer {
     static constexpr auto intLine = std::integral_constant<unsigned int, CFG_V.intLine>{};
 
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
+    static_assert(CFG_V.prescaler <= 0xff);
 
     constexpr CaptureTimer(Timer& tim) noexcept
      : _tim(tim)
@@ -65,7 +77,8 @@ class CaptureTimer {
 
     void enable() noexcept
     {
-        cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
+        // cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
+        _tim.enableInterruptLine(CFG_V.intLine);
         _tim.start();
     }
 
@@ -91,12 +104,8 @@ class CaptureTimer {
             case Timer::Interrupts::captureCompareUp[CFG_V.channel]:
                 _synced = true;
                 _tim.setCounter(0);    // Manual reload, workaround for ERRATA TIMER_ERR_01
-                // _callback(PeriodType{_ctrRegs->CC[CFG_V.channel]}); // TODO implement
                 break;
             case Timer::Interrupts::Overflow:
-                /* If Timer reaches overflows then no PWM signal is detected and it
-                 * requires re-synchronization
-                 */
                 _synced = false;
                 break;
             default: break;

@@ -1,8 +1,11 @@
 #include "Mspm0c110x.hpp"
 
+
 namespace {
 
 namespace PeriphAddr {
+
+static constexpr std::uintptr_t nvic = 0xe000e100;
 
 static constexpr std::uintptr_t timG8 = 0x40090000;
 static constexpr std::uintptr_t gpio0 = 0x400a0000;
@@ -24,11 +27,13 @@ mspm0::IoMux::Pin<PIN_V>* createPin(std::uintptr_t ioMuxAddr) noexcept
 
 namespace mspm0::peripherals {
 
+cortex_m0plus::Nvic nvic(PeriphAddr::nvic);
+
 mspm0::SysControl sysCtl(PeriphAddr::sysCtl);
-mspm0::Gpio gpio0(PeriphAddr::gpio0);
-mspm0::I2c i2c0(PeriphAddr::i2c0);
-mspm0::Timer timG8(PeriphAddr::timG8);
-mspm0::Timer timA0(PeriphAddr::timA0);
+mspm0::Gpio gpio0(PeriphAddr::gpio0, nvic);
+mspm0::I2c i2c0(PeriphAddr::i2c0, nvic);
+mspm0::Timer timG8(PeriphAddr::timG8, nvic);
+mspm0::Timer timA0(PeriphAddr::timA0, nvic);
 
 mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm1>& pin1 = *createPin<mspm0::IoMux::Pins::PinCm1>(PeriphAddr::ioMux);
 mspm0::IoMux::Pin<mspm0::IoMux::Pins::PinCm2>& pin2 = *createPin<mspm0::IoMux::Pins::PinCm2>(PeriphAddr::ioMux);

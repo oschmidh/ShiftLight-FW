@@ -40,8 +40,8 @@ class I2cController {
 
         _i2c.setControllerTimerPeriod(tpr);
 
-        _i2c.setControllerTxFifoTriggerByteLevel(1);
-        _i2c.setControllerRxFifoTriggerByteLevel(0);
+        _i2c.setControllerTxFifoTrigger(I2c::ControllerTxFifoThresh::EqualOrMoreThan2);
+        _i2c.setControllerRxFifoTrigger(I2c::ControllerRxFifoThresh::WhenEmpty);
 
         _i2c.configureController({.active = true, .clockStretchDetection = true});
     }

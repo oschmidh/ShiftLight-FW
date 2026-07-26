@@ -2,7 +2,6 @@
 #define LIB_INCLUDE_MSPM0_PERIODICTIMER_HPP
 
 #include "Timer.hpp"
-#include "cortex_m0/Nvic.hpp"
 
 #include <limits>
 #include <cstdint>
@@ -12,7 +11,7 @@ namespace mspm0 {
 struct PeriodicTimerConfig {
     unsigned int intLine;
     unsigned int channel;
-    unsigned int prescaler;    // TODO max 0xff -> check somewhere?
+    unsigned int prescaler;
 };
 
 template <PeriodicTimerConfig CFG_V>
@@ -22,6 +21,8 @@ class PeriodicTimer {
 
     static constexpr unsigned int presc = CFG_V.prescaler;
     static constexpr unsigned int clkFreq = 24'000'000;    // TODO hardcoded here
+
+    static_assert(presc <= 0xff);
 
     using CallbackType = void (*)(void);
 
@@ -57,9 +58,9 @@ class PeriodicTimer {
 
         _tim.enableInterrupts(Timer::Interrupts::Load);
         _tim.enableClock();
-        // DL_TimerA_setCoreHaltBehavior(TIMA0, DL_TIMER_CORE_HALT_IMMEDIATE);    // TODO ??
 
-        cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
+        _tim.enableInterruptLine(CFG_V.intLine);
+        // cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
         _tim.start();
     }
 

@@ -1,7 +1,8 @@
 #ifndef LIB_INCLUDE_MSPM0_I2C_HPP
 #define LIB_INCLUDE_MSPM0_I2C_HPP
 
-#include "CommonRegs.hpp"
+#include "detail/Peripheral.hpp"
+#include "detail/CommonRegs.hpp"
 
 #include <span>
 #include <utility>
@@ -59,15 +60,36 @@ class I2c : detail::Peripheral<I2c> {
         unsigned int transactionLength = 0;
     };
 
+    enum class ControllerTxFifoThresh : unsigned int {
+        EqualOrMoreThan1 = 0,
+        EqualOrMoreThan2 = 1,
+        EqualOrMoreThan3 = 2,
+        EqualOrMoreThan4 = 3,
+        EqualOrMoreThan5 = 4,
+        EqualOrMoreThan6 = 5,
+        EqualOrMoreThan7 = 6,
+        EqualOrMoreThan8 = 7,
+    };
+
+    enum class ControllerRxFifoThresh : unsigned int {
+        WhenEmpty = 0,
+        EqualOrLessThan1 = 1,
+        EqualOrLessThan2 = 2,
+        EqualOrLessThan3 = 3,
+        EqualOrLessThan4 = 4,
+        EqualOrLessThan5 = 5,
+        EqualOrLessThan6 = 6,
+        EqualOrLessThan7 = 7,
+    };
+
     struct Interrupts {
         enum class InterruptVals : std::uint32_t { };
     };    // TODO make not needed...
 
-    I2c(std::uintptr_t addr) noexcept
-     : detail::Peripheral<I2c>(addr)
-     //  , _intCtrl(addr)
+    I2c(std::uintptr_t addr, cortex_m0plus::Nvic& nvic) noexcept
+     : detail::Peripheral<I2c>(addr, nvic)
      , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
-     , _regs(new (reinterpret_cast<std::uint32_t*>(addr + regOffset)) Registers)
+     , _i2cRegs(new (reinterpret_cast<std::uint32_t*>(addr + regOffset)) I2cRegisters)
     { }
 
     void init() noexcept
@@ -78,19 +100,15 @@ class I2c : detail::Peripheral<I2c> {
         _clkRegs->clockSel.setSource(ClockSource::BusClk);
     }
 
-      void configureGlitchFilter(const GlitchFilterConfig& cfg) noexcept
+    void configureGlitchFilter(const GlitchFilterConfig& cfg) noexcept
     {
-        _regs->GFCTL = cfg.analogGlitchSuppression << 8u;
+        _i2cRegs->GFCTL = cfg.analogGlitchSuppression << 8u;
     }
 
     std::span<const std::byte> fillTxFifo(std::span<const std::byte> data) noexcept
     {
-        // [[maybe_unused]] const volatile std::uintptr_t regAddr =
-        //     reinterpret_cast<std::uintptr_t>(&_regs->controllerTxFifoStatus);
-        // [[maybe_unused]] const volatile cfifosr = *static_casty<std::uint32_t*>(0x4);
-
-        while (_regs->controllerTxFifoStatus.getCount() && !data.empty()) {
-            _regs->CTXDATA = std::to_integer<std::uint32_t>(data[0]);
+        while (_i2cRegs->controllerTxFifoStatus.getCount() && !data.empty()) {
+            _i2cRegs->CTXDATA = std::to_integer<std::uint32_t>(data[0]);
             data = data.subspan<1>();
         }
         return data;
@@ -98,48 +116,44 @@ class I2c : detail::Peripheral<I2c> {
 
     std::span<std::byte> readRxFifo(std::span<std::byte> data) const noexcept
     {
-        while (_regs->controllerRxFifoStatus.getCount() && !data.empty()) {
-            data[0] = std::byte{static_cast<std::uint8_t>(_regs->CRXDATA)};
+        while (_i2cRegs->controllerRxFifoStatus.getCount() && !data.empty()) {
+            data[0] = std::byte{static_cast<std::uint8_t>(_i2cRegs->CRXDATA)};
             data = data.subspan<1>();
         }
         return data;
     }
 
-    void setControllerTimerPeriod(unsigned int period) noexcept { _regs->CTPR = period; }
+    void setControllerTimerPeriod(unsigned int period) noexcept { _i2cRegs->CTPR = period; }
 
-    const ControllerStatus& getControllerStatus() const noexcept { return _regs->controllerStatus; }
+    const ControllerStatus& getControllerStatus() const noexcept { return _i2cRegs->controllerStatus; }
 
-        const FifoStatus& getControllerRxFifoStatus() const noexcept { return _regs->controllerRxFifoStatus; }
+    const FifoStatus& getControllerRxFifoStatus() const noexcept { return _i2cRegs->controllerRxFifoStatus; }
 
     void configureController(const ControllerConfig& cfg) noexcept
     {
-        _regs->CCR = (cfg.loopbackTestmode << 8u) | (cfg.clockStretchDetection << 2u) |
-                     (cfg.multiControllerMode << 1u) | cfg.active;
+        _i2cRegs->CCR = (cfg.loopbackTestmode << 8u) | (cfg.clockStretchDetection << 2u) |
+                        (cfg.multiControllerMode << 1u) | cfg.active;
     }
 
-    // max 7 bytes
-    // TODO enforce with enum?
-    void setControllerTxFifoTriggerByteLevel(unsigned int byteThreshold) noexcept
+    void setControllerTxFifoTrigger(ControllerTxFifoThresh th) noexcept
     {
-        _regs->controllerTxFifoCtrl.setTrigger(byteThreshold);
+        _i2cRegs->controllerTxFifoCtrl.setTrigger(std::to_underlying(th));
     }
 
-    // max 7 bytes
-    // TODO enforce with enum?
-    void setControllerRxFifoTriggerByteLevel(unsigned int byteThreshold) noexcept
+    void setControllerRxFifoTrigger(ControllerRxFifoThresh th) noexcept
     {
-        _regs->controllerRxFifoCtrl.setTrigger(byteThreshold);
+        _i2cRegs->controllerRxFifoCtrl.setTrigger(std::to_underlying(th));
     }
 
     void setControllerTargetAddr(std::uint8_t addr, Direction dir) noexcept
     {
-        _regs->CSA = (addr << 1u) | std::to_underlying(dir);
+        _i2cRegs->CSA = (addr << 1u) | std::to_underlying(dir);
     }
 
     void configureControllerOperation(const ControllerOperationConfig& cfg) noexcept
     {
-        _regs->CCTR = (cfg.transactionLength << 16u) | (cfg.readOnTxEmpty << 5u) | (cfg.ackOverride << 4u) |
-                      (cfg.autoAck << 3u) | (cfg.generateStop << 2u) | (cfg.generateStart << 1u) | cfg.burstrun;
+        _i2cRegs->CCTR = (cfg.transactionLength << 16u) | (cfg.readOnTxEmpty << 5u) | (cfg.ackOverride << 4u) |
+                         (cfg.autoAck << 3u) | (cfg.generateStop << 2u) | (cfg.generateStart << 1u) | cfg.burstrun;
     }
 
   private:
@@ -166,7 +180,7 @@ class I2c : detail::Peripheral<I2c> {
         detail::commonRegs::ClockSel<ClockSource> clockSel;
     };
 
-    struct Registers {    // TODO rename I2cRegs?
+    struct I2cRegisters {
         volatile std::uint32_t GFCTL;
         volatile std::uint32_t reserved_0[3];
         volatile std::uint32_t CSA;
@@ -187,14 +201,12 @@ class I2c : detail::Peripheral<I2c> {
     };
 
     static constexpr uintptr_t clockRegOffset = 0x1000;
-    static constexpr uintptr_t regOffset = 0x1200;    // TODO fix
-
-    // detail::regSet::InterruptEventControl _intCtrl;
+    static constexpr uintptr_t regOffset = 0x1200;
 
     ClockRegisters* const _clkRegs;
-    Registers* const _regs;
+    I2cRegisters* const _i2cRegs;
 };
 
 }    // namespace mspm0
 
-#endif // LIB_INCLUDE_MSPM0_I2C_HPP
+#endif    // LIB_INCLUDE_MSPM0_I2C_HPP

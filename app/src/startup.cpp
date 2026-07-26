@@ -1,6 +1,6 @@
 #include "Devices.hpp"
 #include "Interrupt.hpp"
-#include "cortex_m0/Nvic.hpp"
+#include "cortex_m0plus/Nvic.hpp"
 
 #include <array>
 #include <span>
@@ -68,9 +68,20 @@ constexpr void initBssSection() noexcept
     hardfaultHandler();
 }
 
-static constexpr unsigned int numDevInterrupts = 32;
+// using IsrPtrType = void (*)();
+// static_assert(sizeof(std::array<IsrPtrType, 32>) == sizeof(IsrPtrType[32]));
 
-[[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0::nvic::IntVecTable intVecTable{
+// template <std::size_t N_DEV_INTERRUTPS_V>
+// struct IntVecTable {
+//     std::uint32_t* stackPtr;
+//     std::array<IsrPtrType, numCoreInterrupts> coreIsrTable;
+//     std::array<IsrPtrType, NUM_DEV_INTERRUPTS> devIsrTable;
+// };
+
+static constexpr unsigned int nDevInterrupts = 15;
+
+// [[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0::nvic::IntVecTable intVecTable{
+[[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0plus::IntVecTable intVecTable{
     .stackPtr = &__StackTop,
     .coreIsrTable =
         {
@@ -90,6 +101,6 @@ static constexpr unsigned int numDevInterrupts = 32;
             pendSvHandler,
             sysTickHandler,
         },
-    .devIsrTable = System::InterruptHandler<numDevInterrupts, Devices::i2c, Devices::captureTim,
-                                            Devices::sysTim>::createIsrTable(),
+    .devIsrTable =
+        System::InterruptHandler<nDevInterrupts, Devices::i2c, Devices::captureTim, Devices::sysTim>::createIsrTable(),
 };

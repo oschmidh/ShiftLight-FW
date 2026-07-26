@@ -1,6 +1,7 @@
 #ifndef APP_INCLUDE_MSPM0C110X_HPP
 #define APP_INCLUDE_MSPM0C110X_HPP
 
+#include <cortex_m0plus/Nvic.hpp>
 #include <mspm0/SysControl.hpp>
 #include <mspm0/IoMux.hpp>
 #include <mspm0/Gpio.hpp>
@@ -11,6 +12,8 @@ static constexpr unsigned int timG8IrqLine = 2;
 static constexpr unsigned int timA0IrqLine = 18;
 
 namespace mspm0::peripherals {
+
+extern cortex_m0plus::Nvic nvic;
 
 extern mspm0::SysControl sysCtl;
 extern mspm0::Gpio gpio0;
