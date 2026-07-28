@@ -23,14 +23,14 @@ class Pin {
         typename detail::AlternatePinFunctions<PIN_V>::Type function;
         bool connected = false;
         bool inputEnable = false;
-        bool hysteresisDisable = false;    // TODO invert logic?
+        bool hysteresis = true;
         bool openDrain = false;
     };
 
     void configure(Config cfg) noexcept
     {
-        PINCM = (cfg.openDrain << 25u) | (cfg.hysteresisDisable << 19u) | (cfg.inputEnable << 18u) |
-                (cfg.connected << 7u) | std::to_underlying(cfg.function);
+        PINCM = (cfg.openDrain << 25u) | (!cfg.hysteresis << 19u) | (cfg.inputEnable << 18u) | (cfg.connected << 7u) |
+                std::to_underlying(cfg.function);
     }
 
   private:

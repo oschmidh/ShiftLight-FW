@@ -39,10 +39,6 @@ class PeriodicTimer {
 
         _tim.init(presc);
 
-        // constexpr DL_TimerA_ClockConfig clkCfg{
-        //     .clockSel = DL_TIMER_CLOCK_BUSCLK, .divideRatio = DL_TIMER_CLOCK_DIVIDE_1, .prescale = presc};
-        // DL_TimerA_setClockConfig(TIMA0, &clkCfg);
-
         _tim.setReloadVal(period);
 
         _tim.configure({.countMode = Timer::CountMode::Up,

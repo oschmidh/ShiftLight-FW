@@ -7,14 +7,6 @@
 #include <expected>
 #include <cstdint>
 
-// static constexpr unsigned int dynamicFreq = std::numeric_limits<unsigned int>::max();
-
-// template <unsigned int CLK_FREQ_V = dynamicFreq>
-// class ClockSource {
-//   public:
-//   private:
-// };
-
 namespace mspm0 {
 
 enum class CaptureTimerError {
@@ -22,17 +14,13 @@ enum class CaptureTimerError {
     NotSynced,
 };
 
-// template <typename CLK_SRC_T>
 struct CaptureTimerConfig {
-    // CLK_SRC_T clkSrc;
     unsigned int intLine;
     unsigned int channel;
     unsigned int prescaler;
 };
 
-// template <typename CLK_SRC_T, CaptureTimerConfig CFG_V>
 template <CaptureTimerConfig CFG_V>
-// template <auto CFG_V>
 class CaptureTimer {
   public:
     using ErrorType = CaptureTimerError;
@@ -77,7 +65,6 @@ class CaptureTimer {
 
     void enable() noexcept
     {
-        // cortex_m0::nvic::enableInterrupt(CFG_V.intLine);
         _tim.enableInterruptLine(CFG_V.intLine);
         _tim.start();
     }

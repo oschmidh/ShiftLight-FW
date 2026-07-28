@@ -36,12 +36,12 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     mspm0::peripherals::pin1.configure({.function = mspm0::ioMux::Pin1Functions::I2c0_Sda,
                                         .connected = true,
                                         .inputEnable = true,
-                                        .hysteresisDisable = true,
+                                        .hysteresis = false,
                                         .openDrain = true});
     mspm0::peripherals::pin2.configure({.function = mspm0::ioMux::Pin2Functions::I2c0_Scl,
                                         .connected = true,
                                         .inputEnable = true,
-                                        .hysteresisDisable = true,
+                                        .hysteresis = false,
                                         .openDrain = true});
     mspm0::peripherals::pin28.configure(
         {.function = mspm0::ioMux::Pin28Functions::TimG8_Ccp1, .connected = true, .inputEnable = true});
@@ -52,7 +52,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     System::SteadyClock sysTime{};
     sysTime.init();
 
-    Devices::captureTim.init();
+    Devices::rpmCaptureTim.init();
 
     Devices::i2c.init();
 
@@ -60,17 +60,6 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     Tlc59208f ledDriver(Devices::i2c, ledDriverI2cAddr);
     ledDriver.configure({.mode = Tlc59208f<mspm0::I2cController>::Mode::Normal});    // TODO get rid of template param
                                                                                      // in enum
-
-    // constexpr std::array ledDriverChannelCfg = []() {
-    //     std::array<Tlc59208f<mspm0::I2cController>::ChannelConfig, numLeds> channelCfgs;
-    //     for (auto& cfg : channelCfgs) {
-    //         cfg.channel = i;
-    //         cfg.state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl;
-    //     }
-    //     return channelCfgs;
-    // }();
-
-    // ledDriver.configureChannels(ledDriverChannelCfg);
 
     // TODO kinda ugly api...
     ledDriver.configureChannels(
@@ -104,7 +93,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     LedBuffer<Tlc59208f<mspm0::I2cController>, numLeds, brightnessTable> leds(ledDriver);
     ShiftLight shiftLight(leds, sysTime);
 
-    Devices::captureTim.enable();
+    Devices::rpmCaptureTim.enable();
 
     startupAnimation(sysTime, leds);
 
@@ -122,7 +111,7 @@ void startupAnimation(auto& clock, auto& leds) noexcept
             shiftLight.update(rpm);
         };
 
-        Devices::captureTim.getPeriod().transform(updateLeds);
+        Devices::rpmCaptureTim.getPeriod().transform(updateLeds);
 
         // TODO implement dimming based on ambient light sensor?
 

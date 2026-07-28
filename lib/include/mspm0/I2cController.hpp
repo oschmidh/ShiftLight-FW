@@ -99,20 +99,13 @@ class I2cController {
                                            .readOnTxEmpty = true,
                                            .transactionLength = readbuf.size()});
 
-        // for (auto& byte : readbuf) {
-        //     while (_i2c.getControllerRxFifoStatus().getCount() == 0)
-        //         ;
-        //     // while (DL_I2C_isControllerRXFIFOEmpty(I2C0))
-        //     //     ;
-        //     // byte = DL_I2C_receiveControllerData(I2C0);
-        //     byte = _i2c.getControllerRxFifoStatus().readRxFifo();
-        // }
+        readbuf = _i2c.readRxFifo(readbuf);
 
-        // while (!readbuf.empty()) {
-        //     while (_i2c.getControllerRxFifoStatus().getCount() == 0)
-        //         ;
-        //     readbuf = _i2c.readRxFifo(readbuf);
-        // }
+        while (!readbuf.empty()) {
+            while (_i2c.getControllerRxFifoStatus().getCount() == 0)
+                ;
+            readbuf = _i2c.readRxFifo(readbuf);
+        }
 
         return ErrorType::NoError;
     }
