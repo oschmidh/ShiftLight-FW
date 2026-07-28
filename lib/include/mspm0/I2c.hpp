@@ -4,6 +4,7 @@
 #include "detail/Peripheral.hpp"
 #include "detail/CommonRegs.hpp"
 
+#include <new>
 #include <span>
 #include <utility>
 #include <cstdint>

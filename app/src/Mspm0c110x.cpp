@@ -1,5 +1,6 @@
 #include "Mspm0c110x.hpp"
 
+#include <new>
 
 namespace {
 

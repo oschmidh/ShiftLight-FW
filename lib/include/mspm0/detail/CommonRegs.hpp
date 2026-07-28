@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <type_traits>
 #include <optional>
 #include <new>
 

@@ -39,7 +39,6 @@ class CaptureTimer {
         _tim.init(CFG_V.prescaler);
 
         _tim.setReloadVal(0xffff);
-        // static_assert((1 << CFG_V.resolution) - 1 == 0xffff);
 
         _tim.configure({.countMode = Timer::CountMode::Up,
                         .repeat = Timer::Repeat::Yes,

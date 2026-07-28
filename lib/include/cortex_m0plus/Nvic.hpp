@@ -1,6 +1,7 @@
 #ifndef LIB_INCLUDE_CORTEX_M0PLUS_NVIC_HPP
 #define LIB_INCLUDE_CORTEX_M0PLUS_NVIC_HPP
 
+#include <new>
 #include <cstdint>
 #include <array>
 
