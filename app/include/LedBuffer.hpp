@@ -65,7 +65,7 @@ class LedBuffer {
 
     std::array<typename DRIVER_T::BrightnessType, numLeds> _ledBuf{};
     std::array<bool, numLeds> _isDirty = detail::fillArray<bool, numLeds>(true);
-    const DRIVER_T& _driver;
+    DRIVER_T& _driver;
 };
 
 #endif // APP_INCLUDE_LEDBUFFER_HPP

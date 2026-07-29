@@ -1,17 +1,17 @@
 #ifndef APP_INCLUDE_DEVICES_HPP
 #define APP_INCLUDE_DEVICES_HPP
 
-#include "Interrupt.hpp"
+#include <Mspm0c110x.hpp>
 
-#include <mspm0/I2c.hpp>
-#include <mspm0/CaptureTim.hpp>
-#include <mspm0/TimA0Clock.hpp>
+#include <mspm0/I2cController.hpp>
+#include <mspm0/CaptureTimer.hpp>
+#include <mspm0/PeriodicTimer.hpp>
 
 namespace Devices {
 
-extern I2c i2c0;
-extern CaptureTimG timG8;
-extern TimA0Clock timA0;
+extern mspm0::I2cController i2c;
+extern mspm0::CaptureTimer<{.intLine = timG8IrqLine, .channel = 1, .prescaler = 0xff}> rpmCaptureTim;
+extern mspm0::PeriodicTimer<{.intLine = timA0IrqLine, .channel = 0, .prescaler = 0xff}> sysTim;
 
 }    // namespace Devices
 

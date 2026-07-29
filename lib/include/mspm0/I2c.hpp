@@ -1,112 +1,213 @@
 #ifndef LIB_INCLUDE_MSPM0_I2C_HPP
 #define LIB_INCLUDE_MSPM0_I2C_HPP
 
-#include <ti/driverlib/dl_i2c.h>
-#include <ti/driverlib/driverlib.h>
+#include "detail/Peripheral.hpp"
+#include "detail/CommonRegs.hpp"
 
+#include <new>
 #include <span>
+#include <utility>
 #include <cstdint>
 
-enum class I2cError {
-    NoError,
-    IoError,
-    InvalidParam,
-};
+namespace mspm0 {
 
-class I2c {    // TODO call i2cController?
+class I2c : detail::Peripheral<I2c> {
   public:
-    using ErrorType = I2cError;
+    enum class ClockSource : std::uint32_t {
+        BusClk = 1 << 3u,
+        MfClk = 1 << 2u,
+    };
 
-    I2c() noexcept { }
+    struct GlitchFilterConfig {
+        bool analogGlitchSuppression = true;
+    };
+
+    struct ControllerConfig {
+        bool active = false;
+        bool multiControllerMode = false;
+        bool clockStretchDetection = false;
+        bool loopbackTestmode = false;
+    };
+
+    class ControllerStatus {
+      public:
+        constexpr bool error() const noexcept { return _reg & (1u << 1u); }
+        constexpr bool idle() const noexcept { return _reg & (1u << 5u); }
+        constexpr bool busy() const noexcept { return _reg & (1u << 6u); }
+        constexpr unsigned int transactionCount() const noexcept { return (_reg >> 16u) & 0xfff; }
+
+      private:
+        volatile std::uint32_t _reg;
+    };
+
+    class FifoStatus {
+      public:
+        bool flushActive() const noexcept { return _reg & 0x80; }
+        unsigned int getCount() const noexcept { return _reg & 0xf; }
+
+      private:
+        volatile std::uint8_t _reg;
+    };
+
+    enum class Direction : std::uint32_t { Transmit = 0, Receive = 1 };
+
+    struct ControllerOperationConfig {
+        bool burstrun = false;
+        bool generateStart = false;
+        bool generateStop = false;
+        bool autoAck = false;
+        bool ackOverride = false;
+        bool readOnTxEmpty = false;
+        unsigned int transactionLength = 0;
+    };
+
+    enum class ControllerTxFifoThresh : unsigned int {
+        EqualOrMoreThan1 = 0,
+        EqualOrMoreThan2 = 1,
+        EqualOrMoreThan3 = 2,
+        EqualOrMoreThan4 = 3,
+        EqualOrMoreThan5 = 4,
+        EqualOrMoreThan6 = 5,
+        EqualOrMoreThan7 = 6,
+        EqualOrMoreThan8 = 7,
+    };
+
+    enum class ControllerRxFifoThresh : unsigned int {
+        WhenEmpty = 0,
+        EqualOrLessThan1 = 1,
+        EqualOrLessThan2 = 2,
+        EqualOrLessThan3 = 3,
+        EqualOrLessThan4 = 4,
+        EqualOrLessThan5 = 5,
+        EqualOrLessThan6 = 6,
+        EqualOrLessThan7 = 7,
+    };
+
+    struct Interrupts {
+        enum class InterruptVals : std::uint32_t { };
+    };    // TODO make not needed...
+
+    I2c(std::uintptr_t addr, cortex_m0plus::Nvic& nvic) noexcept
+     : detail::Peripheral<I2c>(addr, nvic)
+     , _clkRegs(new (reinterpret_cast<std::uint32_t*>(addr + clockRegOffset)) ClockRegisters)
+     , _i2cRegs(new (reinterpret_cast<std::uint32_t*>(addr + regOffset)) I2cRegisters)
+    { }
 
     void init() noexcept
     {
-        DL_I2C_reset(I2C0);
-        DL_I2C_enablePower(I2C0);
+        _pwrRegs->resetCtl.reset();
+        _pwrRegs->powerEn.enable();
 
-        constexpr DL_I2C_ClockConfig clkCfg{.clockSel = DL_I2C_CLOCK_BUSCLK, .divideRatio = DL_I2C_CLOCK_DIVIDE_1};
-        DL_I2C_setClockConfig(I2C0, &clkCfg);
-        DL_I2C_disableAnalogGlitchFilter(I2C0);    // TODO needed?
-
-        /* Configure Controller Mode */
-        DL_I2C_resetControllerTransfer(I2C0);
-
-        // TODO make configurable at compile time:
-        static constexpr unsigned int i2cClk = 24'000'000;
-        static constexpr unsigned int i2cFreq = 100'000;
-        static_assert(i2cClk >= 20 * i2cFreq, "requirement in refMan");    // TODO edit message
-        static constexpr unsigned int sclLp = 6;
-        static constexpr unsigned int sclHp = 4;
-        static constexpr unsigned int tpr = (i2cClk / (i2cFreq * (sclLp + sclHp))) - 1;
-        static_assert(tpr <= 0x7F);
-
-        DL_I2C_setTimerPeriod(I2C0, tpr);
-        DL_I2C_setControllerTXFIFOThreshold(I2C0, DL_I2C_TX_FIFO_LEVEL_BYTES_1);
-        DL_I2C_setControllerRXFIFOThreshold(I2C0, DL_I2C_RX_FIFO_LEVEL_BYTES_1);
-        DL_I2C_enableControllerClockStretching(I2C0);
-
-        DL_I2C_enableController(I2C0);
+        _clkRegs->clockSel.setSource(ClockSource::BusClk);
     }
 
-    // TODO should be std::byte instead of uint8?
-    ErrorType write(std::uint8_t addr, std::span<const std::uint8_t> data) const noexcept
+    void configureGlitchFilter(const GlitchFilterConfig& cfg) noexcept
     {
-        const auto size = data.size();
-        if (size > 0xfff) {                    // TODO unlikely?
-            return ErrorType::InvalidParam;    // TODO return error
-        }
-
-        const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
-        data = data.subspan(amount);    // TODO is it allowed if offset == size?
-
-        while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
-            ;
-
-        DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_TX, size);
-
-        while (!data.empty()) {
-            const auto amount = DL_I2C_fillControllerTXFIFO(I2C0, data.data(), data.size());
-            data = data.subspan(amount);    // TODO is it allowed if offset == size?
-        }
-
-        /* Poll until the Controller writes all bytes */
-        while (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_BUSY_BUS)
-            ;
-
-        /* Trap if there was an error */
-        if (DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_ERROR) {
-            return ErrorType::IoError;    // TODO return error code?
-        }
-
-        while (!(DL_I2C_getControllerStatus(I2C0) & DL_I2C_CONTROLLER_STATUS_IDLE))
-            ;
-
-        return ErrorType::NoError;
+        _i2cRegs->GFCTL = cfg.analogGlitchSuppression << 8u;
     }
 
-    // Write transaction, followed by a read transaction with restart in between
-    ErrorType transfer(std::uint8_t addr, std::span<const std::uint8_t> writebuf,
-                       std::span<std::uint8_t> readbuf) const noexcept
-    {    // TODO should be std::byte instead of uint8?
-
-        static constexpr unsigned int txFifoSize = 8;    // TODO hardcoded here?
-        if (writebuf.size() > txFifoSize) {
-            return ErrorType::NoError;    // TODO not implemented
+    std::span<const std::byte> fillTxFifo(std::span<const std::byte> data) noexcept
+    {
+        while (_i2cRegs->controllerTxFifoStatus.getCount() && !data.empty()) {
+            _i2cRegs->CTXDATA = std::to_integer<std::uint32_t>(data[0]);
+            data = data.subspan<1>();
         }
+        return data;
+    }
 
-        DL_I2C_enableControllerReadOnTXEmpty(I2C0);
-        DL_I2C_startControllerTransfer(I2C0, addr, DL_I2C_CONTROLLER_DIRECTION_RX, readbuf.size());
-
-        for (auto& byte : readbuf) {
-            while (DL_I2C_isControllerRXFIFOEmpty(I2C0))
-                ;
-            byte = DL_I2C_receiveControllerData(I2C0);
+    std::span<std::byte> readRxFifo(std::span<std::byte> data) const noexcept
+    {
+        while (_i2cRegs->controllerRxFifoStatus.getCount() && !data.empty()) {
+            data[0] = std::byte{static_cast<std::uint8_t>(_i2cRegs->CRXDATA)};
+            data = data.subspan<1>();
         }
+        return data;
+    }
 
-        return ErrorType::NoError;
+    void setControllerTimerPeriod(unsigned int period) noexcept { _i2cRegs->CTPR = period; }
+
+    const ControllerStatus& getControllerStatus() const noexcept { return _i2cRegs->controllerStatus; }
+
+    const FifoStatus& getControllerRxFifoStatus() const noexcept { return _i2cRegs->controllerRxFifoStatus; }
+
+    void configureController(const ControllerConfig& cfg) noexcept
+    {
+        _i2cRegs->CCR = (cfg.loopbackTestmode << 8u) | (cfg.clockStretchDetection << 2u) |
+                        (cfg.multiControllerMode << 1u) | cfg.active;
+    }
+
+    void setControllerTxFifoTrigger(ControllerTxFifoThresh th) noexcept
+    {
+        _i2cRegs->controllerTxFifoCtrl.setTrigger(std::to_underlying(th));
+    }
+
+    void setControllerRxFifoTrigger(ControllerRxFifoThresh th) noexcept
+    {
+        _i2cRegs->controllerRxFifoCtrl.setTrigger(std::to_underlying(th));
+    }
+
+    void setControllerTargetAddr(std::uint8_t addr, Direction dir) noexcept
+    {
+        _i2cRegs->CSA = (addr << 1u) | std::to_underlying(dir);
+    }
+
+    void configureControllerOperation(const ControllerOperationConfig& cfg) noexcept
+    {
+        _i2cRegs->CCTR = (cfg.transactionLength << 16u) | (cfg.readOnTxEmpty << 5u) | (cfg.ackOverride << 4u) |
+                         (cfg.autoAck << 3u) | (cfg.generateStop << 2u) | (cfg.generateStart << 1u) | cfg.burstrun;
     }
 
   private:
+    class FifoControl {
+      public:
+        void setTrigger(unsigned int trigger) noexcept
+        {
+            _reg &= ~trigBits;
+            _reg |= trigger & trigBits;
+        }
+
+        void startFlush() noexcept { _reg |= flushBit; }
+        void stopFlush() noexcept { _reg &= ~flushBit; }
+
+      private:
+        static constexpr std::uint8_t trigBits = 0x07;
+        static constexpr std::uint8_t flushBit = 0x80;
+
+        volatile std::uint8_t _reg;
+    };
+
+    struct ClockRegisters {
+        detail::commonRegs::ClockDiv clockDiv;
+        detail::commonRegs::ClockSel<ClockSource> clockSel;
+    };
+
+    struct I2cRegisters {
+        volatile std::uint32_t GFCTL;
+        volatile std::uint32_t reserved_0[3];
+        volatile std::uint32_t CSA;
+        volatile std::uint32_t CCTR;
+        ControllerStatus controllerStatus;
+        volatile std::uint32_t CRXDATA;
+        volatile std::uint32_t CTXDATA;
+        volatile std::uint32_t CTPR;
+        volatile std::uint32_t CCR;
+        volatile std::uint32_t reserved_1[2];
+        volatile std::uint32_t CBMON;
+        FifoControl controllerRxFifoCtrl;
+        FifoControl controllerTxFifoCtrl;
+        volatile std::uint16_t reserved_2;
+        FifoStatus controllerRxFifoStatus;
+        FifoStatus controllerTxFifoStatus;
+        volatile std::uint16_t reserved_3;
+    };
+
+    static constexpr uintptr_t clockRegOffset = 0x1000;
+    static constexpr uintptr_t regOffset = 0x1200;
+
+    ClockRegisters* const _clkRegs;
+    I2cRegisters* const _i2cRegs;
 };
 
-#endif // LIB_INCLUDE_MSPM0_I2C_HPP
+}    // namespace mspm0
+
+#endif    // LIB_INCLUDE_MSPM0_I2C_HPP

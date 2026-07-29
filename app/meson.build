@@ -1,8 +1,9 @@
 app_include_dirs = include_directories('include')
 
 app_sources = files(
+    'src/Devices.cpp',
     'src/main.cpp',
-    'src/ti_msp_dl_config.c',
+    'src/Mspm0c110x.cpp',
     'src/startup.cpp'
 )
 
@@ -15,7 +16,6 @@ executable(
     name_suffix : 'elf',
     include_directories: project_include_dirs,
     dependencies: [
-        ti_driverlib_dep,
         shiftlight_lib,
     ],
     native:false

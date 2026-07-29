@@ -39,19 +39,19 @@ class Tlc59208f {
         Mode mode;
     };
 
-    constexpr Tlc59208f(const I2C_T& bus, std::uint8_t i2cAddr) noexcept
+    constexpr Tlc59208f(I2C_T& bus, std::uint8_t i2cAddr) noexcept
      : _i2cAddr(i2cAddr)
      , _bus(bus)
     { }
 
-    ErrorType configure(DevConfig cfg) const noexcept
+    ErrorType configure(DevConfig cfg) noexcept
     {
         return writeReg(Reg::Mode1, static_cast<std::underlying_type_t<Mode>>(cfg.mode));
     }
 
     template <typename... Ts>
         requires(std::is_same_v<Ts, ChannelConfig> && ...)
-    ErrorType configureChannels(Ts... cfgs) const noexcept
+    ErrorType configureChannels(Ts... cfgs) noexcept
     {
         const std::uint16_t ledoutVal = (((static_cast<std::underlying_type_t<DriverState>>(cfgs.state) & 0x3)
                                           << (std::min(cfgs.channel, 7u) * 2u)) |
@@ -68,14 +68,14 @@ class Tlc59208f {
         return writeRegMasked(Reg::LedOut1, ledout1Val, ledout1Mask);
     }
 
-    ErrorType setGlobalBrightness(BrightnessType duty) const noexcept { return writeReg(Reg::GrpPwm, duty); }
+    ErrorType setGlobalBrightness(BrightnessType duty) noexcept { return writeReg(Reg::GrpPwm, duty); }
 
     /*void setBrightness(unsigned int channel, std::uint8_t duty) const noexcept{
         const auo reg = Reg::Pwm0 + std::min(channel,7);
         writeReg(reg, duty);
     }*/
 
-    ErrorType setBrightness(ChannelBrightness b) const noexcept
+    ErrorType setBrightness(ChannelBrightness b) noexcept
     {
         const auto reg = static_cast<Reg>(Reg::Pwm0 + std::min(b.channel, 7u));    // TODO magic num
         return writeReg(reg, b.duty);
@@ -110,7 +110,7 @@ class Tlc59208f {
         AllCallAdr,
     };
 
-    ErrorType writeRegMasked(Reg reg, RegType val, RegType mask) const noexcept
+    ErrorType writeRegMasked(Reg reg, RegType val, RegType mask) noexcept
     {
         const auto prev = readReg(reg);
         if (!prev.has_value()) {
@@ -126,17 +126,17 @@ class Tlc59208f {
         // TODO implement
     }
 
-    ErrorType writeReg(Reg reg, RegType val) const noexcept
+    ErrorType writeReg(Reg reg, RegType val) noexcept
     {
         const std::array<std::uint8_t, 2> buf{reg, val};
-        return _bus.write(_i2cAddr, buf);
+        return _bus.write(_i2cAddr, std::as_bytes(std::span{buf}));
     }
 
     std::expected<RegType, ErrorType> readReg(Reg reg) const noexcept
     {
-        RegType val;
-        if (const auto err =
-                _bus.transfer(_i2cAddr, std::span{reinterpret_cast<std::uint8_t*>(&reg), 1}, std::span{&val, 1});
+        RegType val{};
+        if (const auto err = _bus.transfer(_i2cAddr, std::span{reinterpret_cast<const std::byte*>(&reg), sizeof(reg)},
+                                           std::span{reinterpret_cast<std::byte*>(&val), sizeof(val)});
             err != ErrorType::NoError) {
             return std::unexpected(err);
         }
@@ -144,7 +144,7 @@ class Tlc59208f {
     }
 
     const std::uint8_t _i2cAddr;
-    const I2C_T& _bus;
+    I2C_T& _bus;
 };
 
 #endif // LIB_INCLUDE_DRIVERS_TLC59208F_HPP

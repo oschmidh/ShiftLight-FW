@@ -1,6 +1,6 @@
 #include "Devices.hpp"
 #include "Interrupt.hpp"
-#include "Nvic.hpp"
+#include "cortex_m0plus/Nvic.hpp"
 
 #include <array>
 #include <span>
@@ -68,9 +68,9 @@ constexpr void initBssSection() noexcept
     hardfaultHandler();
 }
 
-static constexpr unsigned int numDevInterrupts = 32;
+static constexpr unsigned int nDevInterrupts = 32;
 
-[[gnu::section(".intvecs"), gnu::used]] constinit const nvic::IntVecTable intVecTable{
+[[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0plus::IntVecTable intVecTable{
     .stackPtr = &__StackTop,
     .coreIsrTable =
         {
@@ -90,6 +90,6 @@ static constexpr unsigned int numDevInterrupts = 32;
             pendSvHandler,
             sysTickHandler,
         },
-    .devIsrTable =
-        System::InterruptHandler<numDevInterrupts, Devices::i2c0, Devices::timG8, Devices::timA0>::createIsrTable(),
+    .devIsrTable = System::InterruptHandler<nDevInterrupts, Devices::i2c, Devices::rpmCaptureTim,
+                                            Devices::sysTim>::createIsrTable(),
 };

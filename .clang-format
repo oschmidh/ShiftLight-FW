@@ -44,5 +44,4 @@ PointerAlignment: Left
 
 AlwaysBreakTemplateDeclarations: Yes
 
-AllowShortCaseLabelsOnASingleLine: true
 Cpp11BracedListStyle: true

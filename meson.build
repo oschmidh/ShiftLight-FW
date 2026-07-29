@@ -8,7 +8,7 @@ project(
         'build.c_std=c11',
         'cpp_std=c++23',
         'build.cpp_std=c++23',
-        'warning_level=1',
+        'warning_level=2',
         'buildtype=minsize',
         'werror=true',
     ]
@@ -59,17 +59,6 @@ if linker_script != ''
     native: false
 )
 endif
-
-ti_driverlib_dep = declare_dependency(
-    dependencies : meson.get_compiler('c', native : true).find_library(
-        'driverlib',
-        dirs : [join_paths(meson.current_source_dir(), 'subprojects/mspm0-sdk/source/ti/driverlib/lib/gcc/m0p/mspm0c110x/')]
-    ),
-    include_directories : include_directories([
-        'subprojects/mspm0-sdk/source/', 
-        'subprojects/mspm0-sdk/source/third_party/CMSIS/Core/Include',
-    ]),
-)
 
 subdir('lib')
 subdir('app')
