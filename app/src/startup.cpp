@@ -68,7 +68,7 @@ constexpr void initBssSection() noexcept
     hardfaultHandler();
 }
 
-static constexpr unsigned int nDevInterrupts = 15;
+static constexpr unsigned int nDevInterrupts = 32;
 
 [[gnu::section(".intvecs"), gnu::used]] constinit const cortex_m0plus::IntVecTable intVecTable{
     .stackPtr = &__StackTop,
