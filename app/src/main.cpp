@@ -61,24 +61,18 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     ledDriver.configure({.mode = Tlc59208f<mspm0::I2cController>::Mode::Normal});    // TODO get rid of template param
                                                                                      // in enum
 
-    // TODO kinda ugly api...
-    ledDriver.configureChannels(
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 0, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 1, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 2, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 3, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 4, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 5, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 6, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl},
-        Tlc59208f<mspm0::I2cController>::ChannelConfig{
-            .channel = 7, .state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl});
+    constexpr std::array channelCfgs = []() {
+        std::array<Tlc59208f<mspm0::I2cController>::ChannelConfig, numLeds> cfgs;
+
+        for (unsigned int i = 0; i < numLeds; ++i) {
+            cfgs[i].channel = i;
+            cfgs[i].state = Tlc59208f<mspm0::I2cController>::DriverState::GroupCtrl;
+        }
+
+        return cfgs;
+    }();
+
+    ledDriver.configureChannels({channelCfgs});
 
     ledDriver.setGlobalBrightness(0x30);
 

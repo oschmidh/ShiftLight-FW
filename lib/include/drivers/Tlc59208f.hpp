@@ -35,6 +35,24 @@ class Tlc59208f {
         DriverState state;
     };
 
+    class DrvOutState {
+      public:
+        constexpr DrvOutState(std::span<const ChannelConfig> cfgs) noexcept
+        {
+            for (const auto& cfg : cfgs) {
+                const unsigned int pos = std::min(cfg.channel, 7u) * 2u;    // TODO magic num
+                val |= std::to_underlying(cfg.state) << pos;
+                mask |= 0x3 << pos;
+            }
+        }
+
+      private:
+        friend ErrorType Tlc59208f::configureChannels(const DrvOutState& cfg) noexcept;
+
+        std::uint16_t val = {};
+        std::uint16_t mask = {};
+    };
+
     struct DevConfig {
         Mode mode;
     };
@@ -49,19 +67,12 @@ class Tlc59208f {
         return writeReg(Reg::Mode1, static_cast<std::underlying_type_t<Mode>>(cfg.mode));
     }
 
-    template <typename... Ts>
-        requires(std::is_same_v<Ts, ChannelConfig> && ...)
-    ErrorType configureChannels(Ts... cfgs) noexcept
+    ErrorType configureChannels(const DrvOutState& ledout) noexcept
     {
-        const std::uint16_t ledoutVal = (((static_cast<std::underlying_type_t<DriverState>>(cfgs.state) & 0x3)
-                                          << (std::min(cfgs.channel, 7u) * 2u)) |
-                                         ...);                                                  // TODO
-                                                                                                // magic num
-        const std::uint16_t ledoutMask = ((0x3 << (std::min(cfgs.channel, 7u) * 2u)) | ...);    // TODO magic num
-        const std::uint8_t ledout0Val = static_cast<std::uint8_t>(ledoutVal);
-        const std::uint8_t ledout0Mask = static_cast<std::uint8_t>(ledoutMask);
-        const std::uint8_t ledout1Val = static_cast<std::uint8_t>(ledoutVal >> 8u);
-        const std::uint8_t ledout1Mask = static_cast<std::uint8_t>(ledoutMask >> 8u);
+        const std::uint8_t ledout0Val = static_cast<std::uint8_t>(ledout.val);
+        const std::uint8_t ledout0Mask = static_cast<std::uint8_t>(ledout.mask);
+        const std::uint8_t ledout1Val = static_cast<std::uint8_t>(ledout.val >> 8u);
+        const std::uint8_t ledout1Mask = static_cast<std::uint8_t>(ledout.mask >> 8u);
         if (const auto err = writeRegMasked(Reg::LedOut0, ledout0Val, ledout0Mask); err != ErrorType::NoError) {
             return err;
         }    // TODO continuous write?
