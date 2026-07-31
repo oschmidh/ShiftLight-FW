@@ -68,4 +68,4 @@ class LedBuffer {
     DRIVER_T& _driver;
 };
 
-#endif // APP_INCLUDE_LEDBUFFER_HPP
+#endif    // APP_INCLUDE_LEDBUFFER_HPP

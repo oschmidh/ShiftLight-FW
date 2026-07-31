@@ -109,4 +109,4 @@ class ShiftLight {
     LED_T& _leds;
 };
 
-#endif // APP_INCLUDE_SHIFTLIGHT_HPP
+#endif    // APP_INCLUDE_SHIFTLIGHT_HPP

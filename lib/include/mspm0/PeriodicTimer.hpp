@@ -74,7 +74,8 @@ class PeriodicTimer {
                     _cb();
                 }
                 break;
-            default: break;
+            default:
+                break;
         }
     }
 
