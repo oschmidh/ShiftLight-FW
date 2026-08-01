@@ -1,4 +1,4 @@
-image::resources/logo.svg[]
+image::resources/logo.svg[align="center"]
 
 image::https://github.com/oschmidh/ShiftLight-FW/actions/workflows/build.yml/badge.svg?branch=main[]
 
