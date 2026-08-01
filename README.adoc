@@ -4,6 +4,9 @@ image::https://github.com/oschmidh/ShiftLight-FW/actions/workflows/build.yml/bad
 
 # ShiftLight Firmware
 
+Firmware for the ShiftLight project.
+The corresponding HW is documented under https://github.com/oschmidh/ShiftLight-HW[ShiftLight-HW].
+
 ## Setup
 
 [source,console]
