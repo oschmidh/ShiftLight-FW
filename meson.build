@@ -63,14 +63,22 @@ endif
 cmake = import('cmake')
 
 opt_var = cmake.subproject_options()
-
-# Call CMake with `-DSOME_OTHER_VAR=ON`
-opt_var.add_cmake_defines({'CMAKE_TRY_COMPILE_TARGET_TYPE ': 'STATIC_LIBRARY'})
-
+opt_var.add_cmake_defines({'CMAKE_TRY_COMPILE_TARGET_TYPE': 'STATIC_LIBRARY'})
+opt_var.add_cmake_defines({'MP_UNITS_API_CONTRACTS': 'NONE'})
+opt_var.add_cmake_defines({'MP_UNITS_API_FREESTANDING': 'ON'})
 
 mp_units_proj = cmake.subproject('mp-units', options: opt_var)
-# mp_units_dep = mp_units_proj.get_variable('mp_units_dep')
-mp_units_dep = mp_units_proj.dependency('mp_units_dep')
+mp_units_dep = mp_units_proj.dependency('mp-units')
+
+# for some reason includes have to be added separately?
+mp_units_inc = include_directories(
+    'subprojects/mp-units/src/core/include',
+    'subprojects/mp-units/src/systems/include',
+)
+
+project_include_dirs += mp_units_inc
+
+message('Targets:\n - ' + '\n - '.join(mp_units_proj.target_list()))
 
 subdir('lib')
 subdir('app')

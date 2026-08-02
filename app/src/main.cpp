@@ -4,6 +4,8 @@
 #include "System.hpp"
 #include <drivers/Tlc59208f.hpp>
 
+#include <mp-units/systems/si.h>
+
 #include <cstdint>
 
 static constexpr unsigned int numLeds = 8;    // TODO define where?
@@ -95,14 +97,11 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
         auto updateLeds = [&shiftLight]<typename REP_T, typename PERIOD_T>(
                               std::chrono::duration<REP_T, PERIOD_T> period) noexcept {
-            static constexpr unsigned int scaler = 1 << 20;
-            // TODO explain why /2
-            const auto rpm =
-                scaler /
-                std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(period)
-                    .count();
+            using namespace mp_units::si::unit_symbols;
 
-            shiftLight.update(rpm);
+            // divide by 2 because there are 2 pulses per crankshaft rotation.
+            const auto rate = period.count() / 2 * Hz;
+            shiftLight.update(rate);
         };
 
         Devices::rpmCaptureTim.getPeriod().transform(updateLeds);

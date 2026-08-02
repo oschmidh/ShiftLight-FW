@@ -3,12 +3,16 @@
 
 #include "PolledTimer.hpp"
 
-static constexpr unsigned int minRpm = 4300;    // TODO better name
-static constexpr unsigned int targetRpm = 5700;
-static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targetRpm + stepsize
+#include <mp-units/systems/si.h>
 
-static_assert(targetRpm > minRpm);
-static_assert(blinkRpm > targetRpm);
+constexpr mp_units::Unit auto rpm = mp_units::mag<60> * mp_units::si::hertz;
+
+static constexpr auto minRate = 4300 * rpm;    // TODO better name
+static constexpr auto targetRate = 5700 * rpm;
+static constexpr auto blinkRate = 6000 * rpm;    // TODO auto derive from targetRpm + stepsize
+
+static_assert(targetRate > minRate);
+static_assert(blinkRate > targetRate);
 
 constexpr auto blinkInterval = std::chrono::milliseconds(80);
 
@@ -20,24 +24,24 @@ class ShiftLight {
      , _leds(leds)
     { }
 
-    constexpr void update(unsigned int rpm) noexcept
+    constexpr void update(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
     {
         if (_overreving) {
-            if (rpm < (blinkRpm - hysteresis)) {
+            if (rate < (blinkRate - hysteresis)) {
                 _overreving = false;
-                setLeds(rpm);
+                setLeds(rate);
             } else {
                 _blinker.update(_leds);
             }
 
         } else {
-            if (rpm >= blinkRpm) {
+            if (rate >= blinkRate) {
                 _overreving = true;
                 _blinker.reset();    // reset blinker so it always starts with the same phase
                 _blinker.blink(_leds);
 
             } else {
-                setLeds(rpm);
+                setLeds(rate);
             }
         }
 
@@ -79,18 +83,18 @@ class ShiftLight {
 
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
-    static constexpr unsigned int threshold(unsigned int ledNo) noexcept
+    static constexpr mp_units::QuantityOf<mp_units::isq::frequency> auto threshold(unsigned int ledNo) noexcept
     {
         constexpr unsigned int scaler = 1024;    // to reduce rounding error
-        constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
-        return minRpm + stepSize * ledNo / scaler;
+        constexpr mp_units::quantity stepSize = (targetRate - minRate) * scaler / (numLeds - 1);
+        return minRate + stepSize * ledNo / scaler;
     }
 
-    constexpr void setLeds(unsigned int rpm) noexcept
+    constexpr void setLeds(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
     {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
-            if (rpm < threshold(i)) {
+            if (rate < threshold(i)) {
                 break;
             }
 
@@ -102,7 +106,7 @@ class ShiftLight {
         }
     }
 
-    static constexpr unsigned int hysteresis = 50;
+    static constexpr auto hysteresis = 50 * rpm;
 
     bool _overreving{};
     Blinker _blinker;
