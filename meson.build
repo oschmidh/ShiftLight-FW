@@ -60,8 +60,17 @@ if linker_script != ''
 )
 endif
 
-mp_units_proj = subproject('mp-units')
-mp_units_dep = mp_units_proj.get_variable('mp_units_dep')
+cmake = import('cmake')
+
+opt_var = cmake.subproject_options()
+
+# Call CMake with `-DSOME_OTHER_VAR=ON`
+opt_var.add_cmake_defines({'CMAKE_TRY_COMPILE_TARGET_TYPE ': 'STATIC_LIBRARY'})
+
+
+mp_units_proj = cmake.subproject('mp-units', options: opt_var)
+# mp_units_dep = mp_units_proj.get_variable('mp_units_dep')
+mp_units_dep = mp_units_proj.dependency('mp_units_dep')
 
 subdir('lib')
 subdir('app')
