@@ -29,7 +29,8 @@ jobs:
 
       - name: Compliance checks
         run: |
-          clang-format --dry-run --verbose ./lib/include/mspm0/I2c.hpp
+          echo $(pwd)
+          clang-format --dry-run --verbose --style='file:.clang-format' ./lib/include/mspm0/I2c.hpp
           ninja -C build clang-format-check -v
 
       - name: Build firmware
