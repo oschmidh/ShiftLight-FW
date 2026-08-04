@@ -30,6 +30,7 @@ jobs:
       - name: Compliance checks
         run: |
           echo $(pwd)
+          pip3 install --user clang-format==22.1.*
           clang-format --version
           clang-format --dry-run --style='file:.clang-format' -dump-config lib/include/mspm0/I2c.hpp
           clang-format --dry-run --verbose --style='file:.clang-format' ./lib/include/mspm0/I2c.hpp
