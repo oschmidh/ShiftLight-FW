@@ -31,7 +31,7 @@ jobs:
         run: |
           echo $(pwd)
           clang-format --version
-          clang-format -style=file -dump-config lib/include/mspm0/I2c.hpp
+          clang-format --dry-run --style='file:.clang-format' -dump-config lib/include/mspm0/I2c.hpp
           clang-format --dry-run --verbose --style='file:.clang-format' ./lib/include/mspm0/I2c.hpp
           ninja -C build clang-format-check -v
 
