@@ -94,7 +94,8 @@ class CaptureTimer {
             case Timer::Interrupts::Overflow:
                 _synced = false;
                 break;
-            default: break;
+            default:
+                break;
         }
     }
 

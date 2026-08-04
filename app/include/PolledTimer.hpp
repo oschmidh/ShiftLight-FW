@@ -37,4 +37,4 @@ class PolledTimer {
     const CLOCK_T::duration _period;
 };
 
-#endif // APP_INCLUDE_POLLEDTIMER_HPP
+#endif    // APP_INCLUDE_POLLEDTIMER_HPP

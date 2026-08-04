@@ -27,6 +27,11 @@ jobs:
           pip3 install --user meson==1.10.0
           meson setup --cross-file arm-none-eabi.txt build
 
+      - name: Compliance checks
+        run: |
+          pip3 install --user clang-format==22.1.*
+          ninja -C build clang-format-check -v
+
       - name: Build firmware
         run: |
           meson compile -C build

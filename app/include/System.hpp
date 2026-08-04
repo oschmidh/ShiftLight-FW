@@ -12,4 +12,4 @@ using SteadyClock = TimerSteadyClock<Devices::sysTim>;
 
 }    // namespace System
 
-#endif // APP_INCLUDE_SYSTEM_HPP
+#endif    // APP_INCLUDE_SYSTEM_HPP

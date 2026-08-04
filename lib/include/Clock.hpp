@@ -33,4 +33,4 @@ static void busyWait(const CLOCK_T& clock, std::chrono::duration<REP_T, PERIOD_T
         ;
 }
 
-#endif // LIB_INCLUDE_CLOCK_HPP
+#endif    // LIB_INCLUDE_CLOCK_HPP
