@@ -37,9 +37,6 @@ BraceWrapping:
 
 SortIncludes: Never
 
-SpaceBeforeParensOptions:
-  AfterPlacementOperator: true
-
 # SpaceAfterTemplateKeyword: true
 SpaceInEmptyBlock: true
 
