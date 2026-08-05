@@ -30,13 +30,15 @@ struct EmulLeds {
 template <unsigned int N_LEDS_V>
 static constexpr std::array<std::remove_cvref_t<decltype(minRate)>, N_LEDS_V> calculateThresholds() noexcept
 {
-    std::array<std::remove_cvref_t<decltype(minRate)>, N_LEDS_V> thresholds;
+    using QuantityType = std::remove_cvref_t<decltype(minRate)>;
+
+    std::array<QuantityType, N_LEDS_V> thresholds;
 
     const mp_units::quantity begin = minRate;
     const mp_units::quantity end = targetRate;
 
     for (std::size_t i = 0; i < thresholds.size(); ++i) {
-        thresholds[i] = begin + i * (end - begin) / (N_LEDS_V - 1);
+        thresholds[i] = value_cast<QuantityType>(begin + i * (end - begin) / (N_LEDS_V - 1.0));
     }
 
     return thresholds;
@@ -61,7 +63,8 @@ TEST_CASE("testing LED to RPM mapping")
         for (auto rate = 0 * rpm; rate < blinkRate; rate += stepsize) {
             shiftlight.update(rate);
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ", rate, "RPM");
+                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
+                              rate.numerical_value_in(rpm), " RPM");
             }
         }
     }
@@ -71,7 +74,8 @@ TEST_CASE("testing LED to RPM mapping")
         for (auto rate = blinkRate - stepsize; rate > 0 * rpm; rate -= stepsize) {
             shiftlight.update(rate);
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ", rate, "RPM");
+                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
+                              rate.numerical_value_in(rpm), "RPM");
             }
         }
     }
