@@ -7,9 +7,9 @@
 
 constexpr mp_units::Unit auto rpm = mp_units::mag<60> * mp_units::si::hertz;
 
-static constexpr auto minRate = 4300 * rpm;    // TODO better name
-static constexpr auto targetRate = 5700 * rpm;
-static constexpr auto blinkRate = 6000 * rpm;    // TODO auto derive from targetRpm + stepsize
+static constexpr mp_units::quantity minRate = 4300 * rpm;    // TODO better name
+static constexpr mp_units::quantity targetRate = 5700 * rpm;
+static constexpr mp_units::quantity blinkRate = 6000 * rpm;    // TODO auto derive from targetRpm + stepsize
 
 static_assert(targetRate > minRate);
 static_assert(blinkRate > targetRate);

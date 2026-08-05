@@ -95,13 +95,17 @@ void startupAnimation(auto& clock, auto& leds) noexcept
 
     while (1) {
 
-        auto updateLeds = [&shiftLight]<typename REP_T, typename PERIOD_T>(
-                              std::chrono::duration<REP_T, PERIOD_T> period) noexcept {
-            using namespace mp_units::si::unit_symbols;
+        auto updateLeds = [&shiftLight](unsigned int cnt) noexcept {
+            using namespace mp_units;
 
-            // divide by 2 because there are 2 pulses per crankshaft rotation.
-            const auto rate = period.count() / 2 * Hz;
-            shiftLight.update(rate);
+            static constexpr int pulsesPerCrankshaftRot = 2;
+
+            constexpr Unit auto counterUnit =
+                mp_units::mag_ratio<Devices::rpmCaptureTim.prescaler + 1,
+                                    pulsesPerCrankshaftRot * Devices::rpmCaptureTim.timClk> *
+                si::hertz;
+
+            shiftLight.update(cnt * counterUnit);
         };
 
         Devices::rpmCaptureTim.getPeriod().transform(updateLeds);
