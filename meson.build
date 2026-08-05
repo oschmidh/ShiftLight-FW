@@ -78,8 +78,6 @@ mp_units_inc = include_directories(
 
 project_include_dirs += mp_units_inc
 
-message('Targets:\n - ' + '\n - '.join(mp_units_proj.target_list()))
-
 subdir('lib')
 subdir('app')
 subdir('test')
