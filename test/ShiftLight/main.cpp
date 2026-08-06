@@ -44,6 +44,23 @@ static constexpr std::array<std::remove_cvref_t<decltype(minRate)>, N_LEDS_V> ca
     return thresholds;
 }
 
+// template <unsigned int N_LEDS_V>
+// static constexpr std::array<std::remove_cvref_t<decltype(minPeriod)>, N_LEDS_V> calculateThresholdsPeriod() noexcept
+// {
+//     using QuantityType = std::remove_cvref_t<decltype(minPeriod)>;
+
+//     std::array<QuantityType, N_LEDS_V> thresholds;
+
+//     const mp_units::quantity begin = 1.0 / minRate;
+//     const mp_units::quantity end = 1.0 / targetRate;
+
+//     for (std::size_t i = 0; i < thresholds.size(); ++i) {
+//         thresholds[i] = value_cast<QuantityType>(begin + i * (end - begin) / (N_LEDS_V - 1.0));
+//     }
+
+//     return thresholds;
+// }
+
 using namespace std::literals::chrono_literals;
 
 TEST_CASE("testing LED to RPM mapping")
@@ -56,7 +73,7 @@ TEST_CASE("testing LED to RPM mapping")
     ShiftLight shiftlight(leds, clock);
 
     static constexpr std::array thresholds = calculateThresholds<nLeds>();
-    static constexpr auto stepsize = 50 * rpm;
+    static constexpr auto stepsize = 5 * rpm;
 
     SUBCASE("increasing RPM")
     {
@@ -73,6 +90,80 @@ TEST_CASE("testing LED to RPM mapping")
     {
         for (auto rate = blinkRate - stepsize; rate > 0 * rpm; rate -= stepsize) {
             shiftlight.update(rate);
+            for (unsigned int i = 0; i < nLeds; ++i) {
+                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
+                              rate.numerical_value_in(rpm), "RPM");
+            }
+        }
+    }
+}
+
+// TEST_CASE("testing LED to period mapping")
+// {
+//     static constexpr unsigned int nLeds = 8;
+
+//     FakeClock clock{};
+
+//     EmulLeds<nLeds> leds;
+//     ShiftLight shiftlight(leds, clock);
+
+//     static constexpr std::array thresholds = calculateThresholdsPeriod<nLeds>();
+//     // static constexpr auto stepsize = 5 * rpm;
+//     static constexpr auto stepsize = 120 * mp_units::si::second;
+
+//     SUBCASE("decreasing period")
+//     {
+//         for (auto period = 10000 * mp_units::si::milli<mp_units::si::second>; period < 1.0 / blinkRate;
+//              period -= stepsize) {
+//             shiftlight.update(period);
+//             for (unsigned int i = 0; i < nLeds; ++i) {
+//                 CHECK_MESSAGE(leds.isOn[i] == (period >= thresholds[i]), "failed for LED ", i, " at ",
+//                               period.numerical_value_in(mp_units::si::milli<mp_units::si::second>), " RPM");
+//             }
+//         }
+//     }
+
+//     SUBCASE("increasing period")
+//     {
+//         for (auto period = 1.0 / blinkRate - stepsize; period > 0 * rpm; period -= stepsize) {
+//             shiftlight.update(period);
+//             for (unsigned int i = 0; i < nLeds; ++i) {
+//                 CHECK_MESSAGE(leds.isOn[i] == (period >= thresholds[i]), "failed for LED ", i, " at ",
+//                               period.numerical_value_in(mp_units::si::milli<mp_units::si::second>), "RPM");
+//             }
+//         }
+//     }
+// }
+
+// static_assert(mp_units::value_cast<int>(1.0 / (5000 * rpm)) == 12 * mp_units::si::milli<mp_units::si::second>);
+
+TEST_CASE("testing LED to period mapping")
+{
+    static constexpr unsigned int nLeds = 8;
+
+    FakeClock clock{};
+
+    EmulLeds<nLeds> leds;
+    ShiftLight shiftlight(leds, clock);
+
+    static constexpr std::array thresholds = calculateThresholds<nLeds>();
+    static constexpr auto stepsize = 50 * rpm;
+
+    SUBCASE("increasing RPM")
+    {
+        for (auto rate = 0 * rpm; rate < blinkRate; rate += stepsize) {
+            shiftlight.update(mp_units::value_cast<int>(1.0 / rate));
+            for (unsigned int i = 0; i < nLeds; ++i) {
+                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
+                              rate.numerical_value_in(rpm), " RPM");
+            }
+        }
+    }
+
+    SUBCASE("decreasing RPM")
+    {
+        for (auto rate = blinkRate - stepsize; rate > 0 * rpm; rate -= stepsize) {
+            shiftlight.update(mp_units::value_cast<int>(1.0 / rate));
             for (unsigned int i = 0; i < nLeds; ++i) {
                 CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
                               rate.numerical_value_in(rpm), "RPM");

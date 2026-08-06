@@ -69,13 +69,15 @@ class CaptureTimer {
         _tim.start();
     }
 
-    std::expected<std::uint32_t, ErrorType> getPeriod() const noexcept
+    using PeriodType = std::chrono::duration<std::uint32_t, std::ratio<(CFG_V.prescaler + 1), timClk>>;
+
+    std::expected<PeriodType, ErrorType> getPeriod() const noexcept
     {
         if (!_synced) {
             return std::unexpected(CaptureTimerError::NotSynced);
         }
 
-        return _tim.getCcpValue(CFG_V.channel);
+        return PeriodType{_tim.getCcpValue(CFG_V.channel)};
     }
 
     void isr() noexcept
