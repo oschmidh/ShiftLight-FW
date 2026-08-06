@@ -30,55 +30,27 @@ class ShiftLight {
      , _leds(leds)
     { }
 
-    constexpr void update(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
-    {
-        if (_overreving) {
-            if (rate < (blinkRate - hysteresis)) {
-                _overreving = false;
-                setLeds(rate);
-            } else {
-                _blinker.update(_leds);
-            }
-
-        } else {
-            if (rate >= blinkRate) {
-                _overreving = true;
-                _blinker.reset();    // reset blinker so it always starts with the same phase
-                _blinker.blink(_leds);
-
-            } else {
-                setLeds(rate);
-            }
-        }
-
-        _leds.show();
-    }
-
     template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
-    // constexpr bool setLedsFloat(mp_units::quantity<U, T> period) noexcept
-    constexpr void update(mp_units::quantity<U, T> period) noexcept
+        requires mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time> ||
+                 mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>
+    constexpr void update(mp_units::quantity<U, T> value) noexcept
     {
-        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<U, T>(1.0 / blinkRate);
-        // constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U>(1.0 / hysteresis);
-        constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U, T>(1.0 / (blinkRate - hysteresis));
-
         if (_overreving) {
-            if (period >= (hysteresisPeriod)) {
+            if (belowBlinkThreshold(value)) {
                 _overreving = false;
-                setLeds(period);
+                setLeds(value);
             } else {
                 _blinker.update(_leds);
             }
 
         } else {
-            if (period < blinkPeriod) {
+            if (aboveBlinkThreshold(value)) {
                 _overreving = true;
                 _blinker.reset();    // reset blinker so it always starts with the same phase
                 _blinker.blink(_leds);
 
             } else {
-                setLeds(period);
+                setLeds(value);
             }
         }
 
@@ -120,11 +92,61 @@ class ShiftLight {
 
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
+    static constexpr bool aboveBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+    {
+        return rate >= blinkRate;
+    }
+
+    template <auto U, typename T>
+        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
+    static constexpr bool aboveBlinkThreshold(mp_units::quantity<U, T> period) noexcept
+    {
+        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<U, T>(1.0 / blinkRate);
+        return period < blinkPeriod;
+    }
+
+    static constexpr bool belowBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+    {
+        return rate < (blinkRate - hysteresis);
+    }
+
+    template <auto U, typename T>
+        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
+    static constexpr bool belowBlinkThreshold(mp_units::quantity<U, T> period) noexcept
+    {
+        constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U, T>(1.0 / (blinkRate - hysteresis));
+        return period >= (hysteresisPeriod);
+    }
+
     static constexpr mp_units::QuantityOf<mp_units::isq::frequency> auto threshold(unsigned int ledNo) noexcept
     {
         constexpr unsigned int scaler = 1024;    // to reduce rounding error
         constexpr mp_units::quantity stepSize = (targetRate - minRate) * scaler / (numLeds - 1);
         return minRate + stepSize * ledNo / scaler;
+    }
+
+    template <auto U, typename T>
+        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>)
+    static constexpr bool belowLedThreshold(mp_units::quantity<U, T> rate, unsigned int nLed) noexcept
+    {
+        constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+            return std::array{mp_units::value_cast<U, T>(minRate + stepSize * IDX_Vs)...};
+        }(std::make_index_sequence<numLeds>{});
+
+        return rate < thresholds[nLed];
+    }
+
+    template <auto U, typename T>
+        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
+    static constexpr bool belowLedThreshold(mp_units::quantity<U, T> period, unsigned int nLed) noexcept
+    {
+        constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+            return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+        }(std::make_index_sequence<numLeds>{});
+
+        return period >= thresholds[nLed];
     }
 
     // constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
@@ -187,43 +209,62 @@ class ShiftLight {
     //     }
     // }
 
-    constexpr void setLeds(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
-    {
-        static constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
-            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
-            return std::array{(minRate + stepSize * IDX_Vs)...};
-        }(std::make_index_sequence<numLeds>{});
+    // constexpr void setLeds(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+    // {
+    //     static constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+    //         constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+    //         return std::array{(minRate + stepSize * IDX_Vs)...};
+    //     }(std::make_index_sequence<numLeds>{});
 
-        unsigned int i = 0;
-        for (; i < numLeds; ++i) {
-            if (rate < thresholds[i]) {
-                break;
-            }
+    //     unsigned int i = 0;
+    //     for (; i < numLeds; ++i) {
+    //         if (rate < thresholds[i]) {
+    //             break;
+    //         }
 
-            _leds.setLed(i, true);
-        }
+    //         _leds.setLed(i, true);
+    //     }
 
-        for (; i < numLeds; ++i) {
-            _leds.setLed(i, false);
-        }
-    }
+    //     for (; i < numLeds; ++i) {
+    //         _leds.setLed(i, false);
+    //     }
+    // }
 
     // template <mp_units::QuantityOf<mp_units::isq::time> QUANTITY_T>
     // constexpr void setLeds(QUANTITY_T period) noexcept
 
-    template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
-    constexpr void setLeds(mp_units::quantity<U, T> period) noexcept
-    {
-        constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
-            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
-            return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
-            // return std::array{mp_units::value_cast<int>(minPeriod + stepSize * IDX_Vs)...};
-        }(std::make_index_sequence<numLeds>{});
+    // template <auto U, typename T>
+    //     requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
+    // constexpr void setLeds(mp_units::quantity<U, T> period) noexcept
+    // {
+    //     constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+    //         constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+    //         return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+    //         // return std::array{mp_units::value_cast<int>(minPeriod + stepSize * IDX_Vs)...};
+    //     }(std::make_index_sequence<numLeds>{});
 
+    //     unsigned int i = 0;
+    //     for (; i < numLeds; ++i) {
+    //         if (period >= thresholds[i]) {
+    //             break;
+    //         }
+
+    //         _leds.setLed(i, true);
+    //     }
+
+    //     for (; i < numLeds; ++i) {
+    //         _leds.setLed(i, false);
+    //     }
+    // }
+
+    template <auto U, typename T>
+        requires mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time> ||
+                 mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>
+    constexpr void setLeds(mp_units::quantity<U, T> value) noexcept
+    {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
-            if (period >= thresholds[i]) {
+            if (belowLedThreshold(value, i)) {
                 break;
             }
 
