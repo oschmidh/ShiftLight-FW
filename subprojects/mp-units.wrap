@@ -1,6 +1,6 @@
 [wrap-git]
 url=https://github.com/mpusz/mp-units.git
-revision=v2.4.0
+revision=v2.5.0
 depth=1
 method = cmake
 

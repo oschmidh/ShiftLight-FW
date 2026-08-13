@@ -2,10 +2,11 @@
 #define APP_INCLUDE_SHIFTLIGHT_HPP
 
 #include "PolledTimer.hpp"
-
+#include <iostream>
 #include <mp-units/systems/si.h>
 
-constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::si::hertz;
+// constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::si::hertz;
+constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::one / mp_units::si::second;
 // inline constexpr struct rpm : mp_units::named_unit<"rpm", mp_units::mag<60> * mp_units::si::hertz> {
 // } rpm;
 
@@ -90,6 +91,14 @@ class ShiftLight {
         bool _state = initial;
     };
 
+    // static constexpr mp_units::QuantityOf<mp_units::isq::time> auto toPeriod(
+    //     mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+    // {
+    //     // return mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::unit_symbols::us));
+    //     // return mp_units::quantity_cast<mp_units::quantity<mp_units::si::unit_symbols::us, int>>(1.0 / rate);
+    //     return mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::unit_symbols::us));
+    // }
+
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
     static constexpr bool aboveBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
@@ -101,8 +110,10 @@ class ShiftLight {
         requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
     static constexpr bool aboveBlinkThreshold(mp_units::quantity<U, T> period) noexcept
     {
-        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<U, T>(1.0 / blinkRate);
-        return period < blinkPeriod;
+        // constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<U, T>(1.0 / blinkRate);
+        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / blinkRate);
+        // constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<T>(1.0 / blinkRate);
+        return period <= blinkPeriod;
     }
 
     static constexpr bool belowBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
@@ -114,8 +125,11 @@ class ShiftLight {
         requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
     static constexpr bool belowBlinkThreshold(mp_units::quantity<U, T> period) noexcept
     {
-        constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U, T>(1.0 / (blinkRate - hysteresis));
-        return period >= (hysteresisPeriod);
+        // constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U, T>(1.0 / (blinkRate - hysteresis));
+        constexpr mp_units::quantity hysteresisPeriod =
+            mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (blinkRate - hysteresis));
+        // constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<T>(1.0 / (blinkRate - hysteresis));
+        return period > (hysteresisPeriod);
     }
 
     static constexpr mp_units::QuantityOf<mp_units::isq::frequency> auto threshold(unsigned int ledNo) noexcept
@@ -141,12 +155,29 @@ class ShiftLight {
         requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
     static constexpr bool belowLedThreshold(mp_units::quantity<U, T> period, unsigned int nLed) noexcept
     {
+        // static_assert(mp_units::Unit<decltype(U)>);
+        // static_assert(mp_units::Reference<decltype(U)>);
+
+        // using TargetQ = mp_units::quantity<U, T>;
+        // static_assert(mp_units::Quantity<TargetQ>);
+        // static_assert(mp_units::Reference<decltype(U)>);
+        // static_assert(mp_units::Unit<decltype(U)>);
+
         constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
             constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
-            return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+            // return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+            return std::array{mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (minRate + stepSize * IDX_Vs))...};
+            // return std::array{mp_units::value_cast<T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+            // return std::array{mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (minRate + stepSize *
+            // IDX_Vs))...};
+            // return std::array{toPeriod(minRate + stepSize * IDX_Vs)...};
         }(std::make_index_sequence<numLeds>{});
 
-        return period >= thresholds[nLed];
+        // std::cout << "period (" << period.numerical_value_in(mp_units::si::micro<mp_units::si::second>)
+        //           << "us) >= threshold ("
+        //           << thresholds[nLed].numerical_value_in(mp_units::si::micro<mp_units::si::second>) << " us) ?\n";
+
+        return period > thresholds[nLed];
     }
 
     // constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);

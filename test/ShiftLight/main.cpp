@@ -44,6 +44,29 @@ static constexpr std::array<std::remove_cvref_t<decltype(minRate)>, N_LEDS_V> ca
     return thresholds;
 }
 
+static constexpr mp_units::QuantityOf<mp_units::isq::time> auto toPeriod(
+    mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+{
+    // return mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::unit_symbols::us));
+    // return mp_units::quantity_cast<mp_units::quantity<mp_units::si::unit_symbols::us, int>>(1.0 / rate);
+
+    const auto f = (1.0 / rate);
+
+    std::cout << "f (1.0 / rate):" << f.numerical_value_in(mp_units::si::micro<mp_units::si::second>) << " us\n";
+
+    const auto fInt = mp_units::value_cast<int>(f.in(mp_units::si::unit_symbols::us));
+    std::cout << "fInt:" << fInt.numerical_value_in(mp_units::si::micro<mp_units::si::second>) << " us\n";
+
+    // return mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::unit_symbols::us));
+
+    // const mp_units::Quantity<mp_units::si::micro<mp_units::si::second>> q(fInt);
+    const mp_units::quantity<mp_units::isq::time[mp_units::si::unit_symbols::us]> q(fInt);
+
+    // static_assert(std::is_same_v<int, decltype(q)>);
+
+    return fInt;
+}
+
 // template <unsigned int N_LEDS_V>
 // static constexpr std::array<std::remove_cvref_t<decltype(minPeriod)>, N_LEDS_V> calculateThresholdsPeriod() noexcept
 // {
@@ -147,15 +170,20 @@ TEST_CASE("testing LED to period mapping")
     ShiftLight shiftlight(leds, clock);
 
     static constexpr std::array thresholds = calculateThresholds<nLeds>();
-    static constexpr auto stepsize = 50 * rpm;
+    static constexpr auto stepsize = 5 * rpm;
 
     SUBCASE("increasing RPM")
     {
         for (auto rate = 0 * rpm; rate < blinkRate; rate += stepsize) {
-            shiftlight.update(mp_units::value_cast<int>(1.0 / rate));
+            // const auto period = toPeriod(rate);
+            shiftlight.update(toPeriod(rate));
             for (unsigned int i = 0; i < nLeds; ++i) {
-                CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
-                              rate.numerical_value_in(rpm), " RPM");
+                CHECK_MESSAGE(
+                    // leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
+                    // rate.numerical_value_in(rpm), " RPM (" <<
+                    // period.numerical_value_in(mp_units::si::milli<mp_units::si::second>) << " ms)");
+                    leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ", rate.numerical_value_in(rpm),
+                    " RPM");
             }
         }
     }
@@ -163,7 +191,10 @@ TEST_CASE("testing LED to period mapping")
     SUBCASE("decreasing RPM")
     {
         for (auto rate = blinkRate - stepsize; rate > 0 * rpm; rate -= stepsize) {
-            shiftlight.update(mp_units::value_cast<int>(1.0 / rate));
+            // shiftlight.update(mp_units::value_cast<1 * mp_units::si::micro<mp_units::si::second>, int>(1.0 / rate));
+            // shiftlight.update(mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::micro<mp_units::si::second>)));
+            // shiftlight.update(mp_units::value_cast<int>((1.0 / rate).in(mp_units::si::unit_symbols::us)));
+            shiftlight.update(toPeriod(rate));
             for (unsigned int i = 0; i < nLeds; ++i) {
                 CHECK_MESSAGE(leds.isOn[i] == (rate >= thresholds[i]), "failed for LED ", i, " at ",
                               rate.numerical_value_in(rpm), "RPM");
