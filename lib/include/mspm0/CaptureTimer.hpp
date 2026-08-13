@@ -28,8 +28,7 @@ class CaptureTimer {
     static constexpr auto intLine = std::integral_constant<unsigned int, CFG_V.intLine>{};
 
     static constexpr unsigned int timClk = 24'000'000;    // TODO hardcoded here
-    static constexpr unsigned int prescaler = CFG_V.prescaler;
-    static_assert(prescaler <= 0xff);
+    static_assert(CFG_V.prescaler <= 0xff);
 
     constexpr CaptureTimer(Timer& tim) noexcept
      : _tim(tim)
@@ -37,7 +36,7 @@ class CaptureTimer {
 
     void init() noexcept
     {
-        _tim.init(prescaler);
+        _tim.init(CFG_V.prescaler);
 
         _tim.setReloadVal(0xffff);
 

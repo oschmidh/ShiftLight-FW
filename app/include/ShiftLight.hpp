@@ -156,7 +156,7 @@ class ShiftLight {
         }
     }
 
-    static constexpr auto hysteresis = 50 * rpm;
+    static constexpr mp_units::quantity hysteresis = 50 * rpm;
 
     bool _overreving{};
     Blinker _blinker;
