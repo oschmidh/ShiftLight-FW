@@ -3,12 +3,18 @@
 
 #include "PolledTimer.hpp"
 
-static constexpr unsigned int minRpm = 4300;    // TODO better name
-static constexpr unsigned int targetRpm = 5700;
-static constexpr unsigned int blinkRpm = 6000;    // TODO auto derive from targetRpm + stepsize
+#include <mp-units/systems/si.h>
 
-static_assert(targetRpm > minRpm);
-static_assert(blinkRpm > targetRpm);
+// Frequency defined as 1/s instead of Hz, because otherwise seems to cause problems when calling 1/rpm later (somehow
+// 1/Hz is not recognized as being equal to s)
+constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::one / mp_units::si::second;
+
+static constexpr mp_units::quantity minRate = 4300 * rpm;    // TODO better name
+static constexpr mp_units::quantity targetRate = 5700 * rpm;
+static constexpr mp_units::quantity blinkRate = 6000 * rpm;    // TODO auto derive from targetRpm + stepsize
+
+static_assert(targetRate > minRate);
+static_assert(blinkRate > targetRate);
 
 constexpr auto blinkInterval = std::chrono::milliseconds(80);
 
@@ -20,24 +26,27 @@ class ShiftLight {
      , _leds(leds)
     { }
 
-    constexpr void update(unsigned int rpm) noexcept
+    template <auto U, typename T>
+        requires mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time> ||
+                 mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>
+    constexpr void update(mp_units::quantity<U, T> value) noexcept
     {
         if (_overreving) {
-            if (rpm < (blinkRpm - hysteresis)) {
+            if (belowBlinkThreshold(value)) {
                 _overreving = false;
-                setLeds(rpm);
+                setLeds(value);
             } else {
                 _blinker.update(_leds);
             }
 
         } else {
-            if (rpm >= blinkRpm) {
+            if (aboveBlinkThreshold(value)) {
                 _overreving = true;
                 _blinker.reset();    // reset blinker so it always starts with the same phase
                 _blinker.blink(_leds);
 
             } else {
-                setLeds(rpm);
+                setLeds(value);
             }
         }
 
@@ -79,18 +88,65 @@ class ShiftLight {
 
     static constexpr unsigned int numLeds = LED_T::numLeds;
 
-    static constexpr unsigned int threshold(unsigned int ledNo) noexcept
+    static constexpr bool aboveBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
     {
-        constexpr unsigned int scaler = 1024;    // to reduce rounding error
-        constexpr unsigned int stepSize = (targetRpm - minRpm) * scaler / (numLeds - 1);
-        return minRpm + stepSize * ledNo / scaler;
+        return rate >= blinkRate;
     }
 
-    constexpr void setLeds(unsigned int rpm) noexcept
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool aboveBlinkThreshold(QUANTITY_T period) noexcept
+    {
+        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<QUANTITY_T>(1.0 / blinkRate);
+        return period <= blinkPeriod;
+    }
+
+    static constexpr bool belowBlinkThreshold(mp_units::QuantityOf<mp_units::isq::frequency> auto rate) noexcept
+    {
+        return rate < (blinkRate - hysteresis);
+    }
+
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool belowBlinkThreshold(QUANTITY_T period) noexcept
+    {
+        constexpr mp_units::quantity hysteresisPeriod =
+            mp_units::value_cast<QUANTITY_T>(1.0 / (blinkRate - hysteresis));
+        return period > (hysteresisPeriod);
+    }
+
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::frequency>)
+    static constexpr bool belowLedThreshold(QUANTITY_T rate, unsigned int nLed) noexcept
+    {
+        constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+            return std::array{mp_units::value_cast<QUANTITY_T>(minRate + stepSize * IDX_Vs)...};
+        }(std::make_index_sequence<numLeds>{});
+
+        return rate < thresholds[nLed];
+    }
+
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool belowLedThreshold(QUANTITY_T period, unsigned int nLed) noexcept
+    {
+        constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+            constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+            return std::array{mp_units::value_cast<QUANTITY_T>(1.0 / (minRate + stepSize * IDX_Vs))...};
+        }(std::make_index_sequence<numLeds>{});
+
+        return period > thresholds[nLed];
+    }
+
+    template <auto U, typename T>
+        requires mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time> ||
+                 mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>
+    constexpr void setLeds(mp_units::quantity<U, T> value) noexcept
     {
         unsigned int i = 0;
         for (; i < numLeds; ++i) {
-            if (rpm < threshold(i)) {
+            if (belowLedThreshold(value, i)) {
                 break;
             }
 
@@ -102,7 +158,7 @@ class ShiftLight {
         }
     }
 
-    static constexpr unsigned int hysteresis = 50;
+    static constexpr mp_units::quantity hysteresis = 50 * rpm;
 
     bool _overreving{};
     Blinker _blinker;

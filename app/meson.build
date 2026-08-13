@@ -17,6 +17,7 @@ executable(
     include_directories: project_include_dirs,
     dependencies: [
         shiftlight_lib,
+        mp_units_dep,
     ],
     native:false
 )

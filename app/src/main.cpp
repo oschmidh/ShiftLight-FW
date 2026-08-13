@@ -2,7 +2,10 @@
 #include "LedBuffer.hpp"
 #include "Devices.hpp"
 #include "System.hpp"
+#include "MpUnitsChronoConv.hpp"
 #include <drivers/Tlc59208f.hpp>
+
+#include <mp-units/systems/si.h>
 
 #include <cstdint>
 
@@ -94,15 +97,10 @@ void startupAnimation(auto& clock, auto& leds) noexcept
     while (1) {
 
         auto updateLeds = [&shiftLight]<typename REP_T, typename PERIOD_T>(
-                              std::chrono::duration<REP_T, PERIOD_T> period) noexcept {
-            static constexpr unsigned int scaler = 1 << 20;
-            // TODO explain why /2
-            const auto rpm =
-                scaler /
-                std::chrono::duration_cast<std::chrono::duration<unsigned int, std::ratio<60, 2 * scaler>>>(period)
-                    .count();
-
-            shiftLight.update(rpm);
+                              std::chrono::duration<REP_T, PERIOD_T> timerPeriod) noexcept {
+            static constexpr int pulsesPerCrankshaftRot = 2;
+            const mp_units::quantity crankPeriod = timerPeriod * pulsesPerCrankshaftRot;
+            shiftLight.update(crankPeriod);
         };
 
         Devices::rpmCaptureTim.getPeriod().transform(updateLeds);
