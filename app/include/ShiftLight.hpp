@@ -106,12 +106,12 @@ class ShiftLight {
         return rate >= blinkRate;
     }
 
-    template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
-    static constexpr bool aboveBlinkThreshold(mp_units::quantity<U, T> period) noexcept
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool aboveBlinkThreshold(QUANTITY_T period) noexcept
     {
         // constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<U, T>(1.0 / blinkRate);
-        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / blinkRate);
+        constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<QUANTITY_T>(1.0 / blinkRate);
         // constexpr mp_units::quantity blinkPeriod = mp_units::value_cast<T>(1.0 / blinkRate);
         return period <= blinkPeriod;
     }
@@ -121,13 +121,13 @@ class ShiftLight {
         return rate < (blinkRate - hysteresis);
     }
 
-    template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
-    static constexpr bool belowBlinkThreshold(mp_units::quantity<U, T> period) noexcept
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool belowBlinkThreshold(QUANTITY_T period) noexcept
     {
         // constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<U, T>(1.0 / (blinkRate - hysteresis));
         constexpr mp_units::quantity hysteresisPeriod =
-            mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (blinkRate - hysteresis));
+            mp_units::value_cast<QUANTITY_T>(1.0 / (blinkRate - hysteresis));
         // constexpr mp_units::quantity hysteresisPeriod = mp_units::value_cast<T>(1.0 / (blinkRate - hysteresis));
         return period > (hysteresisPeriod);
     }
@@ -139,21 +139,33 @@ class ShiftLight {
         return minRate + stepSize * ledNo / scaler;
     }
 
-    template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>)
-    static constexpr bool belowLedThreshold(mp_units::quantity<U, T> rate, unsigned int nLed) noexcept
+    // template <auto U, typename T>
+    //     requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::frequency>)
+    // static constexpr bool belowLedThreshold(mp_units::quantity<U, T> rate, unsigned int nLed) noexcept
+    // {
+    //     constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
+    //         constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
+    //         return std::array{mp_units::value_cast<U, T>(minRate + stepSize * IDX_Vs)...};
+    //     }(std::make_index_sequence<numLeds>{});
+
+    //     return rate < thresholds[nLed];
+    // }
+
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::frequency>)
+    static constexpr bool belowLedThreshold(QUANTITY_T rate, unsigned int nLed) noexcept
     {
         constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
             constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
-            return std::array{mp_units::value_cast<U, T>(minRate + stepSize * IDX_Vs)...};
+            return std::array{mp_units::value_cast<QUANTITY_T>(minRate + stepSize * IDX_Vs)...};
         }(std::make_index_sequence<numLeds>{});
 
         return rate < thresholds[nLed];
     }
 
-    template <auto U, typename T>
-        requires(mp_units::QuantityOf<mp_units::quantity<U, T>, mp_units::isq::time>)
-    static constexpr bool belowLedThreshold(mp_units::quantity<U, T> period, unsigned int nLed) noexcept
+    template <typename QUANTITY_T>
+        requires(mp_units::QuantityOf<QUANTITY_T, mp_units::isq::time>)
+    static constexpr bool belowLedThreshold(QUANTITY_T period, unsigned int nLed) noexcept
     {
         // static_assert(mp_units::Unit<decltype(U)>);
         // static_assert(mp_units::Reference<decltype(U)>);
@@ -166,7 +178,7 @@ class ShiftLight {
         constexpr std::array thresholds = []<std::size_t... IDX_Vs>(std::index_sequence<IDX_Vs...>) {
             constexpr mp_units::quantity stepSize = (targetRate - minRate) / (numLeds - 1);
             // return std::array{mp_units::value_cast<U, T>(1.0 / (minRate + stepSize * IDX_Vs))...};
-            return std::array{mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (minRate + stepSize * IDX_Vs))...};
+            return std::array{mp_units::value_cast<QUANTITY_T>(1.0 / (minRate + stepSize * IDX_Vs))...};
             // return std::array{mp_units::value_cast<T>(1.0 / (minRate + stepSize * IDX_Vs))...};
             // return std::array{mp_units::value_cast<mp_units::quantity<U, T>>(1.0 / (minRate + stepSize *
             // IDX_Vs))...};
