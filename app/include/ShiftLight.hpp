@@ -7,7 +7,7 @@
 
 // Frequency defined as 1/s instead of Hz, because otherwise seems to cause problems when calling 1/rpm later (somehow
 // 1/Hz is not recognized as being equal to s)
-constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::si::hertz;
+constexpr mp_units::Unit auto rpm = mp_units::mag_ratio<1, 60> * mp_units::one / mp_units::si::second;
 
 static constexpr mp_units::quantity minRate = 4300 * rpm;    // TODO better name
 static constexpr mp_units::quantity targetRate = 5700 * rpm;
